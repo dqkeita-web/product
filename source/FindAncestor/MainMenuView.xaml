@@ -1,0 +1,91 @@
+﻿<Window
+    x:Class="FindAncestor.MainMenuView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:FindAncestor.Converters"
+    xmlns:vm="clr-namespace:FindAncestor.ViewModels"
+    Title="モード選択"
+    Width="400"
+    Height="600"
+    WindowStartupLocation="CenterScreen">
+
+    <Window.DataContext>
+        <vm:MainMenuViewModel />
+    </Window.DataContext>
+
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+
+        <Button
+            Width="200"
+            Height="50"
+            Margin="10"
+            Command="{Binding StartSlideCommand}"
+            Content="スライドショー" />
+
+        <Button
+            Width="200"
+            Height="50"
+            Margin="10"
+            Command="{Binding StartScroll1Command}"
+            Content="横スクロール（1行）" />
+
+        <Button
+            Width="200"
+            Height="50"
+            Margin="10"
+            Command="{Binding StartScroll4Command}"
+            Content="横スクロール（4行）" />
+        <StackPanel Margin="20">
+            <TextBlock FontWeight="Bold" Text="縦横比" />
+            <ItemsControl ItemsSource="{Binding AspectRatios}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <RadioButton
+                            Content="{Binding DisplayText}"
+                            GroupName="AspectRatioGroup"
+                            IsChecked="{Binding DataContext.SelectedAspectRatio, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay, Converter={StaticResource AspectRatioToIsCheckedConverter}, ConverterParameter={RelativeSource Self}}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Margin="0,5,0,10" Text="{Binding ImageWidth, StringFormat='横幅: {0} px'}" />
+            <Slider
+                IsSnapToTickEnabled="True"
+                Maximum="3000"
+                Minimum="1"
+                TickFrequency="1"
+                Value="{Binding ImageWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <StackPanel Margin="0,10,0,10">
+                <TextBlock Text="{Binding ScrollSpeed, StringFormat=速度: {0}}" />
+                <Slider
+                    IsSnapToTickEnabled="True"
+                    Maximum="20"
+                    Minimum="-20"
+                    TickFrequency="1"
+                    Value="{Binding ScrollSpeed, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+            </StackPanel>
+            <Button
+                Width="150"
+                Command="{Binding OpenScroll1RowCommand}"
+                Content="スクロール表示" />
+            <StackPanel Margin="20">
+
+                <!-- 既存の縦横比 / 横幅 / 速度コントロールはそのまま -->
+
+                <Button
+        Width="200"
+        Height="50"
+        Margin="10"
+        Command="{Binding ExportScrollVideoCommand}"
+        Content="スクロール動画を出力" />
+            </StackPanel>
+        </StackPanel>
+
+    </StackPanel>
+</Window>

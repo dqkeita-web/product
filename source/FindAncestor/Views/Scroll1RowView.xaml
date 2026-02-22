@@ -1,0 +1,33 @@
+﻿<UserControl
+    x:Class="FindAncestor.Views.Scroll1RowView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:behaviors="clr-namespace:FindAncestor.Behaviors"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors">
+
+    <ScrollViewer HorizontalScrollBarVisibility="Hidden"
+                  VerticalScrollBarVisibility="Disabled">
+
+        <i:Interaction.Behaviors>
+            <!-- バインディングで速度を MainMenu から連動 -->
+            <behaviors:ScrollAnimationBehavior Speed="{Binding ScrollSpeed}" />
+        </i:Interaction.Behaviors>
+
+        <ItemsControl ItemsSource="{Binding ScrollImages}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Image Source="{Binding Source}"
+                           Width="{Binding Width}"
+                           Height="{Binding Height}"
+                           Stretch="Fill"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </ScrollViewer>
+</UserControl>

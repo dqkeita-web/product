@@ -4,22 +4,38 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:FindAncestor"
     Title="Home"
-    MinWidth="3600"
-    MinHeight="1000"
+    MinWidth="1600"
+    MinHeight="800"
     WindowStartupLocation="CenterScreen">
+
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition MinWidth="100" />
-            <ColumnDefinition MinWidth="100" />
-            <ColumnDefinition MinWidth="100" />
-            <ColumnDefinition MinWidth="100" />
-        </Grid.ColumnDefinitions>
-        <!--  左側  -->
-        <local:ParentAView Grid.Column="0" />
-        <!--  右側  -->
-        <local:ParentBView Grid.Column="1" />
-        <local:ParentCView Grid.Column="2" />
-        <local:ParentDView Grid.Column="3" />
+
+        <!--  戻るボタン  -->
+        <Button
+            Width="100"
+            Height="40"
+            Margin="10"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Command="{Binding BackCommand}"
+            Content="戻る" />
+
+        <Grid Margin="0,60,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+                <ColumnDefinition />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+
+            <local:ImageDisplayView Grid.Column="0" DataContext="{Binding ParentA}" />
+
+            <local:ParentBView Grid.Column="1" DataContext="{Binding ParentB}" />
+
+            <local:ParentCView Grid.Column="2" DataContext="{Binding ParentC}" />
+
+            <local:ParentDView Grid.Column="3" DataContext="{Binding ParentD}" />
+        </Grid>
 
     </Grid>
 </Window>

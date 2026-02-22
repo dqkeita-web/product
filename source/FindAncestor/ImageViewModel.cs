@@ -1,53 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.Collections.ObjectModel;
 using System.IO;
-using System.Runtime.CompilerServices;
+using System.Linq;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Threading;
 
 namespace FindAncestor
 {
-    public class ImageViewModel : INotifyPropertyChanged
+    public class ImageViewModel
     {
-        private readonly DispatcherTimer _timer;
-        private readonly List<ImageSource> _images = new();
-        private int _index;
+        public ObservableCollection<ImageSource> Images { get; }
+            = new ObservableCollection<ImageSource>();
 
-        private ImageSource _imageSource;
-        public ImageSource ImageSource
-        {
-            get => _imageSource;
-            set
-            {
-                _imageSource = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public ImageViewModel(int startIndex = 0)
+        public ImageViewModel()
         {
             LoadImages();
-
-            if (_images.Count == 0)
-                return;
-
-            _index = startIndex % _images.Count;
-            ImageSource = _images[_index];
-
-            _timer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(3)
-            };
-
-            _timer.Tick += (s, e) =>
-            {
-                _index = (_index + 1) % _images.Count;
-                ImageSource = _images[_index];
-            };
-
-            _timer.Start();
         }
 
         private void LoadImages()
@@ -59,31 +25,29 @@ namespace FindAncestor
             if (!Directory.Exists(folder))
                 return;
 
-            // 1.png, 2.png, 3.png ... の前提
             var files = Directory
                 .GetFiles(folder, "*.png")
-                .OrderBy(f =>
-                {
-                    var name = Path.GetFileNameWithoutExtension(f);
-                    return int.TryParse(name, out int n) ? n : int.MaxValue;
-                })
-                .ToList();
+                .OrderBy(f => f);
 
             foreach (var file in files)
             {
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
-                bitmap.UriSource = new Uri(file, UriKind.Absolute);
+                bitmap.UriSource = new System.Uri(file);
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
+
+                // メモリ対策（重要）
+                bitmap.DecodePixelHeight = 300;
+
                 bitmap.EndInit();
                 bitmap.Freeze();
 
-                _images.Add(bitmap);
+                Images.Add(bitmap);
             }
-        }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string name = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            // ループ用に同じ画像をもう一度追加
+            foreach (var img in Images.ToList())
+                Images.Add(img);
+        }
     }
 }

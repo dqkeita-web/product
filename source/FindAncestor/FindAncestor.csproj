@@ -15,5 +15,12 @@
 	</ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Image\A\" />
+    <Folder Include="Image\B\" />
+    <Folder Include="Image\C\" />
+    <Folder Include="Image\D\" />
   </ItemGroup>
 </Project>

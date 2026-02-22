@@ -1,8 +1,10 @@
-﻿<Application
-    x:Class="FindAncestor.App"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="clr-namespace:FindAncestor"
-    StartupUri="HomeView.xaml">
-    <Application.Resources />
+﻿<Application x:Class="FindAncestor.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:converters="clr-namespace:FindAncestor.Converters"
+             StartupUri="MainMenuView.xaml">
+    <Application.Resources>
+        <converters:DoubleEqualityConverter x:Key="DoubleEqualityConverter" />
+        <converters:AspectRatioToIsCheckedConverter x:Key="AspectRatioToIsCheckedConverter"/>
+    </Application.Resources>
 </Application>

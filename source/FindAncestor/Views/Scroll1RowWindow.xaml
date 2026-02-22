@@ -1,0 +1,18 @@
+﻿<Window
+    x:Class="FindAncestor.Views.Scroll1RowWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:FindAncestor.Views"
+    Title="1行スクロール"
+    Width="1200"
+    Height="500"
+    WindowStartupLocation="CenterScreen">
+
+    <Grid>
+        <!--  16:9 の場合 → AspectRatio="1.777778"  -->
+
+        <!--  3:2 の場合 → AspectRatio="1.5"  -->
+
+        <local:Scroll1RowView AspectRatio="1.333333" ImageHeight="300" />
+    </Grid>
+</Window>
