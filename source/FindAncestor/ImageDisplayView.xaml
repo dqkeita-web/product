@@ -5,6 +5,9 @@
     xmlns:local="clr-namespace:FindAncestor"
     x:Name="root">
 
+    <UserControl.Resources>
+        <local:NullToBoolConverter x:Key="NullToBoolConverter" />
+    </UserControl.Resources>
     <!--  親判定して StartIndex を切り替える  -->
     <UserControl.Style>
         <Style TargetType="UserControl">
@@ -13,22 +16,22 @@
             <Style.Triggers>
 
                 <!--  ParentA の中なら index 0  -->
-                <DataTrigger Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:ParentAView}}}" Value="{x:Null}">
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:ParentAView}}, Converter={StaticResource NullToBoolConverter}}" Value="True">
                     <Setter Property="Tag" Value="0" />
                 </DataTrigger>
 
                 <!--  ParentB の中なら index 1  -->
-                <DataTrigger Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:ParentBView}}}" Value="{x:Null}">
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:ParentBView}}, Converter={StaticResource NullToBoolConverter}}" Value="True">
                     <Setter Property="Tag" Value="3" />
                 </DataTrigger>
 
                 <!--  ParentC の中なら index 2  -->
-                <DataTrigger Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:ParentCView}}}" Value="{x:Null}">
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:ParentCView}}, Converter={StaticResource NullToBoolConverter}}" Value="True">
                     <Setter Property="Tag" Value="5" />
                 </DataTrigger>
 
                 <!--  ParentD の中なら index 3  -->
-                <DataTrigger Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:ParentDView}}}" Value="{x:Null}">
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:ParentDView}}, Converter={StaticResource NullToBoolConverter}}" Value="True">
                     <Setter Property="Tag" Value="7" />
                 </DataTrigger>
             </Style.Triggers>
