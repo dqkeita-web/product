@@ -1,0 +1,41 @@
+﻿<UserControl
+    x:Class="FindAncestor.ImageDisplayView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:FindAncestor"
+    x:Name="root">
+
+    <!--  親判定して StartIndex を切り替える  -->
+    <UserControl.Style>
+        <Style TargetType="UserControl">
+            <Setter Property="Tag" Value="0" />
+
+            <Style.Triggers>
+
+                <!--  ParentA の中なら index 0  -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:ParentAView}}}" Value="{x:Null}">
+                    <Setter Property="Tag" Value="0" />
+                </DataTrigger>
+
+                <!--  ParentB の中なら index 1  -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:ParentBView}}}" Value="{x:Null}">
+                    <Setter Property="Tag" Value="3" />
+                </DataTrigger>
+
+                <!--  ParentC の中なら index 2  -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:ParentCView}}}" Value="{x:Null}">
+                    <Setter Property="Tag" Value="5" />
+                </DataTrigger>
+
+                <!--  ParentD の中なら index 3  -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:ParentDView}}}" Value="{x:Null}">
+                    <Setter Property="Tag" Value="7" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Style>
+
+    <Grid Loaded="Grid_Loaded">
+        <Image Source="{Binding ImageSource}" Stretch="Fill" />
+    </Grid>
+</UserControl>
