@@ -4,8 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:FindAncestor.Views"
     Title="1行スクロール"
-    Width="1200"
-    Height="500"
+    Width="1280"
+    Height="720"
     WindowStartupLocation="CenterScreen">
 
     <Grid>

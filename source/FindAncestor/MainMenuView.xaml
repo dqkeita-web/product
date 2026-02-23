@@ -5,75 +5,183 @@
     xmlns:converters="clr-namespace:FindAncestor.Converters"
     xmlns:vm="clr-namespace:FindAncestor.ViewModels"
     Title="モード選択"
-    Width="400"
-    Height="600"
+    Width="500"
+    Height="700"
     WindowStartupLocation="CenterScreen">
-
     <Window.DataContext>
         <vm:MainMenuViewModel />
     </Window.DataContext>
 
-    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+    <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Top">
 
-        <Button
-            Width="200"
-            Height="50"
-            Margin="10"
-            Command="{Binding StartSlideCommand}"
-            Content="スライドショー" />
+        <!--  =============================  -->
+        <!--  画面設定  -->
+        <!--  =============================  -->
+        <Expander
+            Margin="0,10"
+            FontWeight="Bold"
+            Header="画面サイズ / スクロール設定"
+            IsExpanded="True">
 
-        <Button
-            Width="200"
-            Height="50"
-            Margin="10"
-            Command="{Binding StartScroll1Command}"
-            Content="横スクロール（1行）" />
+            <StackPanel Margin="10">
 
-        <Button
-            Width="200"
-            Height="50"
-            Margin="10"
-            Command="{Binding StartScroll4Command}"
-            Content="横スクロール（4行）" />
-        <StackPanel Margin="20">
-            <TextBlock FontWeight="Bold" Text="縦横比" />
-            <ItemsControl ItemsSource="{Binding AspectRatios}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <RadioButton
-                            Content="{Binding DisplayText}"
-                            GroupName="AspectRatioGroup"
-                            IsChecked="{Binding DataContext.SelectedAspectRatio, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay, Converter={StaticResource AspectRatioToIsCheckedConverter}, ConverterParameter={RelativeSource Self}}" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                <TextBlock FontWeight="Bold" Text="縦横比" />
 
-            <TextBlock Margin="0,5,0,10" Text="{Binding ImageWidth, StringFormat='横幅: {0} px'}" />
-            <Slider
-                IsSnapToTickEnabled="True"
-                Maximum="3000"
-                Minimum="1"
-                TickFrequency="1"
-                Value="{Binding ImageWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-            <StackPanel Margin="0,10,0,10">
-                <TextBlock Text="{Binding ScrollSpeed, StringFormat=速度: {0}}" />
+                <StackPanel
+                    Margin="0,10"
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal">
+
+                    <ItemsControl ItemsSource="{Binding DisplaySizes}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <ToggleButton
+                                    Width="110"
+                                    Height="50"
+                                    Margin="5"
+                                    Command="{Binding DataContext.SelectDisplaySizeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    Content="{Binding Name}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                </StackPanel>
+
+                <TextBlock Margin="0,5,0,10" Text="{Binding ImageWidth, StringFormat='横幅: {0} px'}" />
+
                 <Slider
                     IsSnapToTickEnabled="True"
-                    Maximum="20"
-                    Minimum="-20"
+                    Maximum="3000"
+                    Minimum="1"
                     TickFrequency="1"
-                    Value="{Binding ScrollSpeed, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    Value="{Binding ImageWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <StackPanel Margin="0,10,0,10">
+                    <TextBlock Text="{Binding ScrollSpeed, StringFormat=速度: {0}}" />
+                    <Slider
+                        IsSnapToTickEnabled="True"
+                        Maximum="20"
+                        Minimum="-20"
+                        TickFrequency="1"
+                        Value="{Binding ScrollSpeed, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
 
             </StackPanel>
+        </Expander>
+
+
+        <!--  =============================  -->
+        <!--  音声設定  -->
+        <!--  =============================  -->
+        <Expander
+            Margin="0,15"
+            FontWeight="Bold"
+            Header="音声設定"
+            IsExpanded="True">
+
+            <StackPanel Margin="10">
+
+                <Button
+                    Width="200"
+                    HorizontalAlignment="Center"
+                    Command="{Binding SelectAudioCommand}"
+                    Content="音声フォルダ選択" />
+
+                <TextBlock
+                    Margin="0,5"
+                    HorizontalAlignment="Center"
+                    FontWeight="Bold"
+                    Text="{Binding CurrentAudioFileName}" />
+
+                <StackPanel
+                    Margin="0,10"
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal">
+
+                    <Button
+                        Width="60"
+                        Margin="5"
+                        Command="{Binding PrevAudioCommand}"
+                        Content="⏮" />
+
+                    <Button
+                        Width="100"
+                        Margin="5"
+                        Command="{Binding PlayAudioCommand}"
+                        Content="▶ 再生" />
+
+                    <Button
+                        Width="100"
+                        Margin="5"
+                        Command="{Binding StopAudioCommand}"
+                        Content="■ 停止" />
+
+                    <Button
+                        Width="60"
+                        Margin="5"
+                        Command="{Binding NextAudioCommand}"
+                        Content="⏭" />
+                </StackPanel>
+
+                <CheckBox
+                    Margin="0,5"
+                    HorizontalAlignment="Center"
+                    Content="ループ再生"
+                    IsChecked="{Binding IsLoopEnabled}" />
+
+                <StackPanel Margin="0,20,0,0" HorizontalAlignment="Center">
+
+                    <StackPanel Margin="0,10,0,0">
+                        <TextBlock HorizontalAlignment="Center" Text="音量" />
+                        <Slider
+                            Width="200"
+                            Maximum="100"
+                            Minimum="0"
+                            Value="{Binding AudioVolume}" />
+                    </StackPanel>
+
+                    <TextBlock HorizontalAlignment="Center" Text="フェード時間（秒）" />
+
+                    <Slider
+                        Width="200"
+                        Maximum="5"
+                        Minimum="0"
+                        Value="{Binding FadeDuration}" />
+                </StackPanel>
+
+            </StackPanel>
+        </Expander>
+
+
+        <!--  =============================  -->
+        <!--  表示・出力  -->
+        <!--  =============================  -->
+        <StackPanel Margin="0,20,0,0">
+
             <Button
-                Width="150"
+                Width="300"
+                Height="63"
+                Margin="10"
+                HorizontalAlignment="Center"
                 Command="{Binding OpenScroll1RowCommand}"
-                Content="スクロール表示" />
+                Content="動画再生" />
+            <StackPanel Margin="0,10,0,0">
+                <TextBlock HorizontalAlignment="Center" Text="保存時間（秒）" />
+                <Slider
+                    Width="200"
+                    IsSnapToTickEnabled="True"
+                    Maximum="60"
+                    Minimum="5"
+                    TickFrequency="5"
+                    Value="{Binding ExportDurationSeconds}" />
+            </StackPanel>
             <StackPanel
                 Margin="0,10"
                 HorizontalAlignment="Center"
@@ -87,7 +195,34 @@
                     Command="{Binding ExportJpegCommand}"
                     Content="JPEGで出力" />
             </StackPanel>
-        </StackPanel>
+            <StackPanel Margin="0,20,0,0" Orientation="Vertical">
 
+                <TextBlock Text="保存先フォルダ" />
+                <ComboBox ItemsSource="{Binding ImageFolders}" SelectedItem="{Binding SelectedImageFolder}" />
+
+                <TextBlock Margin="0,10,0,0" Text="保存形式" />
+                <ComboBox ItemsSource="{Binding ImageSaveFormats}" SelectedItem="{Binding SelectedImageSaveFormat}" />
+
+                <StackPanel
+                    Margin="0,10,0,0"
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal">
+
+                    <Button
+                        Width="120"
+                        Margin="5"
+                        Command="{Binding AddImageToFolderCommand}"
+                        Content="画像追加" />
+
+                    <Button
+                        Width="120"
+                        Margin="5"
+                        Command="{Binding DeleteImagesInFolderCommand}"
+                        Content="フォルダ削除" />
+
+                </StackPanel>
+
+            </StackPanel>
+        </StackPanel>
     </StackPanel>
 </Window>
