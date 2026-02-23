@@ -77,16 +77,18 @@ namespace FindAncestor.ViewModels
         private void LoadImages()
         {
             string folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Image");
-
             if (!Directory.Exists(folder)) return;
 
-            var files = Directory.GetFiles(folder, "*.png")
-                                 .OrderBy(f =>
-                                 {
-                                     var name = Path.GetFileNameWithoutExtension(f);
-                                     return int.TryParse(name, out int n) ? n : int.MaxValue;
-                                 })
-                                 .ToList();
+            var files = Directory.EnumerateFiles(folder)
+                .Where(f =>
+                    f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                    f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                    f.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(f =>
+                {
+                    var name = Path.GetFileNameWithoutExtension(f);
+                    return int.TryParse(name, out int n) ? n : int.MaxValue;
+                });
 
             foreach (var file in files)
             {
@@ -100,10 +102,7 @@ namespace FindAncestor.ViewModels
                     bitmap.Freeze();
                     _images.Add(bitmap);
                 }
-                catch
-                {
-                    // 読み込み失敗は無視
-                }
+                catch { }
             }
         }
 

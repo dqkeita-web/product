@@ -41,29 +41,43 @@ namespace FindAncestor.ViewModels
             string baseFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Image");
             string[] folders = { "A", "B", "C", "D" };
 
+            // 対応拡張子
+            string[] extensions = { "*.png", "*.jpg", "*.jpeg" };
+
             foreach (var f in folders)
             {
                 string folderPath = Path.Combine(baseFolder, f);
                 if (!Directory.Exists(folderPath)) continue;
 
-                var files = Directory.GetFiles(folderPath, "*.png").OrderBy(x => x);
+                var files = extensions
+                    .SelectMany(ext => Directory.GetFiles(folderPath, ext))
+                    .OrderBy(x => x);
+
                 foreach (var file in files)
                 {
-                    var bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.UriSource = new Uri(file);
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmap.EndInit();
-                    bitmap.Freeze();
-
-                    double width = bitmap.PixelWidth * (imageHeight / bitmap.PixelHeight);
-
-                    ScrollImages.Add(new ImageWithWidth
+                    try
                     {
-                        Source = bitmap,
-                        Width = width,
-                        Height = imageHeight
-                    });
+                        var bitmap = new BitmapImage();
+                        bitmap.BeginInit();
+                        bitmap.UriSource = new Uri(file);
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmap.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
+                        bitmap.EndInit();
+                        bitmap.Freeze();
+
+                        double width = bitmap.PixelWidth * (imageHeight / bitmap.PixelHeight);
+
+                        ScrollImages.Add(new ImageWithWidth
+                        {
+                            Source = bitmap,
+                            Width = width,
+                            Height = imageHeight
+                        });
+                    }
+                    catch
+                    {
+                        // 読み込み失敗は無視
+                    }
                 }
             }
 

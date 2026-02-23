@@ -26,6 +26,9 @@ namespace FindAncestor.ViewModels
         };
 
         [ObservableProperty]
+        private ImageExportFormat _selectedFormat = ImageExportFormat.Png;
+
+        [ObservableProperty]
         private double _scrollSpeed = 3; // 1～5
 
         [ObservableProperty]
@@ -155,6 +158,21 @@ namespace FindAncestor.ViewModels
         {
             _scrollViewModel?.UpdateScrollSpeed(value);
         }
+
+        [RelayCommand]
+        private void ExportPng()
+        {
+            SelectedFormat = ImageExportFormat.Png;
+            ExportScrollVideo();
+        }
+
+        [RelayCommand]
+        private void ExportJpeg()
+        {
+            SelectedFormat = ImageExportFormat.Jpeg;
+            ExportScrollVideo();
+        }
+
         [RelayCommand]
         private async void ExportScrollVideo()
         {
@@ -172,12 +190,24 @@ namespace FindAncestor.ViewModels
             string ffmpegPath = @"C:\Tools\ffmpeg\bin\ffmpeg.exe"; // ←環境に合わせて変更
             string outputPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scroll_video.mp4");
 
-            // 現在のスクロール位置を保持
-            double startScroll = _scrollViewModel.ScrollPosition;
+            // 🔥 ここが追加：フォーマット自動判定
+            BitmapEncoder CreateEncoder()
+            {
+                if (SelectedFormat == ImageExportFormat.Jpeg)
+                {
+                    return new JpegBitmapEncoder
+                    {
+                        QualityLevel = 90 // 画質(0-100)
+                    };
+                }
+                return new PngBitmapEncoder();
+            }
 
+            string extension = SelectedFormat == ImageExportFormat.Jpeg ? "jpg" : "png";
+
+            double startScroll = _scrollViewModel.ScrollPosition;
             int frameIndex = 0;
 
-            // CompositionTarget.Rendering を使って滑らかにキャプチャ
             EventHandler handler = null!;
             var tcs = new TaskCompletionSource();
 
@@ -193,29 +223,40 @@ namespace FindAncestor.ViewModels
                 // 1フレーム分スクロール
                 _scrollViewModel.ScrollPosition += _scrollViewModel.ScrollSpeed / fps;
 
-                // 無限スクロール用にリセット
                 double totalWidth = 0;
                 foreach (var img in _scrollViewModel.ScrollImages)
                     totalWidth += img.Width;
+
                 if (_scrollViewModel.ScrollPosition > totalWidth / 2)
                     _scrollViewModel.ScrollPosition = 0;
 
-                // ウィンドウを描画
-                var scrollWindow = Application.Current.Windows.OfType<Scroll1RowWindow>()
+                var scrollWindow = Application.Current.Windows
+                    .OfType<Scroll1RowWindow>()
                     .FirstOrDefault(w => w.DataContext == _scrollViewModel);
+
                 if (scrollWindow == null) return;
 
                 int width = (int)scrollWindow.ActualWidth;
                 int height = (int)scrollWindow.ActualHeight;
-                var rtb = new RenderTargetBitmap(width, height, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+
+                var rtb = new RenderTargetBitmap(
+                    width,
+                    height,
+                    96,
+                    96,
+                    PixelFormats.Pbgra32);
+
                 rtb.Render(scrollWindow);
 
-                // PNG 保存
-                var encoder = new PngBitmapEncoder();
+                // 🔥 自動エンコーダー切替
+                var encoder = CreateEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(rtb));
-                string filePath = Path.Combine(frameFolder, $"frame_{frameIndex:D4}.png");
+
+                string filePath = Path.Combine(frameFolder, $"frame_{frameIndex:D4}.{extension}");
                 using (var fs = new FileStream(filePath, FileMode.Create))
+                {
                     encoder.Save(fs);
+                }
 
                 frameIndex++;
             };
@@ -223,17 +264,17 @@ namespace FindAncestor.ViewModels
             CompositionTarget.Rendering += handler;
             await tcs.Task;
 
-            // ffmpeg で MP4 に変換
+            // ffmpeg で MP4 に変換（拡張子も自動）
             var psi = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = ffmpegPath,
-                Arguments = $"-y -framerate {fps} -i \"{frameFolder}\\frame_%04d.png\" -c:v libx264 -pix_fmt yuv420p \"{outputPath}\"",
+                Arguments = $"-y -framerate {fps} -i \"{frameFolder}\\frame_%04d.{extension}\" -c:v libx264 -pix_fmt yuv420p \"{outputPath}\"",
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
+
             System.Diagnostics.Process.Start(psi)?.WaitForExit();
 
-            // スクロール位置を元に戻す
             _scrollViewModel.ScrollPosition = startScroll;
 
             MessageBox.Show($"動画の出力が完了しました。\nファイル: {outputPath}");

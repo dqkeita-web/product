@@ -74,16 +74,18 @@
                 Width="150"
                 Command="{Binding OpenScroll1RowCommand}"
                 Content="スクロール表示" />
-            <StackPanel Margin="20">
-
-                <!-- 既存の縦横比 / 横幅 / 速度コントロールはそのまま -->
-
+            <StackPanel
+                Margin="0,10"
+                HorizontalAlignment="Center"
+                Orientation="Horizontal">
                 <Button
-        Width="200"
-        Height="50"
-        Margin="10"
-        Command="{Binding ExportScrollVideoCommand}"
-        Content="スクロール動画を出力" />
+                    Margin="5"
+                    Command="{Binding ExportPngCommand}"
+                    Content="PNGで出力" />
+                <Button
+                    Margin="5"
+                    Command="{Binding ExportJpegCommand}"
+                    Content="JPEGで出力" />
             </StackPanel>
         </StackPanel>
 
