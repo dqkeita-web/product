@@ -5,16 +5,12 @@ using FindAncestor.Enum;
 using FindAncestor.Models;
 using FindAncestor.Views;
 using Microsoft.Win32;
-using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using FindAncestor.Enum;
-
-
 
 namespace FindAncestor.ViewModels
 {
@@ -116,10 +112,6 @@ namespace FindAncestor.ViewModels
             // プリセットの横幅をスライダーに反映
             ImageWidth = value.Width;
         }
-        partial void OnAudioVolumeChanged(int value)
-        {
-            _scrollViewModel?.SetVolume(value / 100.0);
-        }
 
         partial void OnImageWidthChanged(double value)
         {
@@ -134,14 +126,7 @@ namespace FindAncestor.ViewModels
 
         // --- 横スクロール用 ---
         private DispatcherTimer _scrollTimer;
-        private double _scrollPosition;
         private Scroll1RowViewModel? _scrollViewModel;
-        public double ScrollPosition
-        {
-            get => _scrollPosition;
-            set => SetProperty(ref _scrollPosition, value);
-        }
-
         public MainMenuViewModel()
         {
             if (AspectRatios.Count > 0)
@@ -152,24 +137,6 @@ namespace FindAncestor.ViewModels
         private void SelectAspectRatio(AspectRatioItem item)
         {
             SelectedAspectRatio = item;
-        }
-
-        [RelayCommand]
-        private void StartSlide()
-        {
-            OpenHome(DisplayMode.Slide);
-        }
-
-        [RelayCommand]
-        private void StartScroll1()
-        {
-            OpenHome(DisplayMode.Scroll1Row);
-        }
-
-        [RelayCommand]
-        private void StartScroll4()
-        {
-            OpenHome(DisplayMode.Scroll4Rows);
         }
 
         [RelayCommand]
@@ -334,44 +301,6 @@ namespace FindAncestor.ViewModels
 
             window.DataContext = _scrollViewModel;
             window.Show();
-        }
-
-        private void StartScrolling()
-        {
-            if (_scrollViewModel == null) return;
-
-            _scrollPosition = 0;
-
-            _scrollTimer = new DispatcherTimer();
-            _scrollTimer.Interval = TimeSpan.FromMilliseconds(30); // 固定で約33FPS
-            _scrollTimer.Tick += (s, e) =>
-            {
-                ScrollPosition += _scrollSpeed; // スピード分ずつ進める
-
-                // 無限スクロール
-                double totalWidth = 0;
-                foreach (var img in _scrollViewModel.ScrollImages)
-                    totalWidth += img.Width;
-
-                if (ScrollPosition > totalWidth / 2) // コレクションをコピーしてるので半分でリセット
-                    ScrollPosition = 0;
-            };
-            _scrollTimer.Start();
-        }
-
-        private void OpenHome(DisplayMode mode)
-        {
-            var home = new HomeView
-            {
-                DataContext = new HomeViewModel(mode)
-            };
-            home.Show();
-            Application.Current.Windows[0]?.Close();
-        }
-
-        public void StopScrolling()
-        {
-            _scrollTimer?.Stop();
         }
 
 
