@@ -1,10 +1,9 @@
-﻿<UserControl x:Class="FindAncestor.ImageDisplayView"
+﻿<UserControl x:Class="FindAncestor.Views.ImageDisplayView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:FindAncestor.ViewModels"
              xmlns:local="clr-namespace:FindAncestor.Views">
     <UserControl.DataContext>
-        <vm:ImageDisplayViewModel />
+        <local:ImageDisplayViewModel />
     </UserControl.DataContext>
 
     <StackPanel Margin="10">

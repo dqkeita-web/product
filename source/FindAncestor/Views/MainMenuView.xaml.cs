@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace FindAncestor
+namespace FindAncestor.Views
 {
     public partial class MainMenuView : Window
     {

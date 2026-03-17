@@ -1,18 +1,16 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-
-using CommunityToolkit.Mvvm.Input;
-using FindAncestor.Enum;
-using FindAncestor.Models;
-using FindAncestor.Views;
-using Microsoft.Win32;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using FindAncestor.Enum;
+using FindAncestor.Models;
+using Microsoft.Win32;
 
-namespace FindAncestor.ViewModels
+namespace FindAncestor.Views
 {
     public partial class MainMenuViewModel : ObservableObject
 
@@ -261,7 +259,7 @@ namespace FindAncestor.ViewModels
                 if (AudioFiles.Count > 0)
                 {
                     CurrentAudioIndex = 0;
-                    CurrentAudioFileName = Path.GetFileName(AudioFiles[0]);
+                    CurrentAudioFileName = Path.GetFileName((string?)AudioFiles[0]);
                 }
             }
         }
@@ -345,7 +343,7 @@ namespace FindAncestor.ViewModels
             if (AudioFiles.Count == 0) return;
 
             CurrentAudioIndex = (CurrentAudioIndex + 1) % AudioFiles.Count;
-            CurrentAudioFileName = Path.GetFileName(AudioFiles[CurrentAudioIndex]);
+            CurrentAudioFileName = Path.GetFileName((string?)AudioFiles[CurrentAudioIndex]);
 
             PlayAudio();
         }
@@ -360,7 +358,7 @@ namespace FindAncestor.ViewModels
             if (CurrentAudioIndex < 0)
                 CurrentAudioIndex = AudioFiles.Count - 1;
 
-            CurrentAudioFileName = Path.GetFileName(AudioFiles[CurrentAudioIndex]);
+            CurrentAudioFileName = Path.GetFileName((string?)AudioFiles[CurrentAudioIndex]);
 
             PlayAudio();
         }

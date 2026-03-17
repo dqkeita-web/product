@@ -1,8 +1,6 @@
-﻿using System;
-using System.Windows.Controls;
-using System.Windows.Media;
+﻿using System.Windows.Controls;
 
-namespace FindAncestor
+namespace FindAncestor.Views
 {
     public partial class ImageDisplayView : UserControl
     {

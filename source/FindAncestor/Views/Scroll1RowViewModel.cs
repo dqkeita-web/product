@@ -1,13 +1,11 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace FindAncestor.ViewModels
+namespace FindAncestor.Views
 {
     public partial class Scroll1RowViewModel : ObservableObject
     {

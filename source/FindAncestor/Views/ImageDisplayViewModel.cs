@@ -1,14 +1,13 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using FindAncestor.Models;
-using FindAncestor.Views;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using FindAncestor.Models;
 
-namespace FindAncestor.ViewModels
+namespace FindAncestor.Views
 {
     public partial class ImageDisplayViewModel : ObservableObject
     {
@@ -51,7 +50,7 @@ namespace FindAncestor.ViewModels
 
             _timer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromSeconds(ScrollSpeed)
+                Interval = TimeSpan.FromSeconds((double)ScrollSpeed)
             };
 
             _timer.Tick += (s, e) =>
