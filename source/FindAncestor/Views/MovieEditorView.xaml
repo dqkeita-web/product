@@ -1,0 +1,143 @@
+﻿<Window
+    x:Class="FindAncestor.Views.MovieEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:views="clr-namespace:FindAncestor.Views"
+    Title="映像スクロールメーカー"
+    Background="Black"
+    WindowStyle="None">
+
+    <Window.Resources>
+
+        <!--  アイコンフォント  -->
+        <Style x:Key="IconButton" TargetType="Button">
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#22000000" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Width" Value="48" />
+            <Setter Property="Height" Value="48" />
+            <Setter Property="Margin" Value="4" />
+        </Style>
+
+    </Window.Resources>
+
+    <Grid>
+
+        <!--  =================  -->
+        <!--  動画エリア  -->
+        <!--  =================  -->
+        <views:ScrollingPreviewView>
+            <b:Interaction.Triggers>
+                <b:EventTrigger EventName="MouseMove">
+                    <b:InvokeCommandAction Command="{Binding ShowUICommand}" />
+                </b:EventTrigger>
+                <b:EventTrigger EventName="MouseLeftButtonDown">
+                    <b:InvokeCommandAction Command="{Binding TogglePlayCommand}" />
+                </b:EventTrigger>
+            </b:Interaction.Triggers>
+        </views:ScrollingPreviewView>
+
+        <!--  =================  -->
+        <!--  埋め込み再生  -->
+        <!--  =================  -->
+        <Border Background="#AA000000" Visibility="{Binding IsEmbeddedMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+
+            <Grid>
+                <views:ScrollingPreviewView DataContext="{Binding EmbeddedPreviewVM}" />
+
+                <Button
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Command="{Binding CloseEmbeddedCommand}"
+                    Content=""
+                    Style="{StaticResource IconButton}" />
+            </Grid>
+        </Border>
+
+        <!--  =================  -->
+        <!--  右ツール（TikTok風）  -->
+        <!--  =================  -->
+        <StackPanel
+            Margin="10"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center">
+
+            <Button
+                Command="{Binding AddImageToFolderCommand}"
+                Content=""
+                Style="{StaticResource IconButton}" />
+
+            <Button
+                Command="{Binding DeleteImagesInFolderCommand}"
+                Content=""
+                Style="{StaticResource IconButton}" />
+
+            <Button
+                Command="{Binding SelectAudioCommand}"
+                Content=""
+                Style="{StaticResource IconButton}" />
+
+            <Button
+                Command="{Binding OpenScroll1RowCommand}"
+                Content=""
+                Style="{StaticResource IconButton}" />
+
+            <Button
+                Command="{Binding OpenScrollEmbeddedCommand}"
+                Content=""
+                Style="{StaticResource IconButton}" />
+
+        </StackPanel>
+
+        <!--  =================  -->
+        <!--  下コントロール（YouTube風）  -->
+        <!--  =================  -->
+        <Border
+            Padding="10"
+            VerticalAlignment="Bottom"
+            Background="#66000000">
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!--  再生  -->
+                <StackPanel Orientation="Horizontal">
+                    <Button
+                        Command="{Binding PrevAudioCommand}"
+                        Content=""
+                        Style="{StaticResource IconButton}" />
+
+                    <Button
+                        Command="{Binding TogglePlayCommand}"
+                        Content=""
+                        Style="{StaticResource IconButton}" />
+
+                    <Button
+                        Command="{Binding NextAudioCommand}"
+                        Content=""
+                        Style="{StaticResource IconButton}" />
+                </StackPanel>
+
+                <!--  シーク風（ダミー）  -->
+                <Slider
+                    Grid.Column="1"
+                    Margin="10,0"
+                    Value="{Binding ScrollSpeed}" />
+
+                <!--  音量  -->
+                <Button
+                    Grid.Column="2"
+                    Content=""
+                    Style="{StaticResource IconButton}" />
+            </Grid>
+        </Border>
+
+    </Grid>
+</Window>

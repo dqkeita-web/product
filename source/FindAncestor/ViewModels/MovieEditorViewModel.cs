@@ -1,273 +1,267 @@
-﻿using System.Collections.ObjectModel;
-using System.IO;
-using System.Windows;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FindAncestor.Enum;
 using FindAncestor.Models;
 using FindAncestor.Services;
 using FindAncestor.Views;
 using Microsoft.Win32;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Windows;
 
-namespace FindAncestor.ViewModels
+namespace FindAncestor.ViewModels;
+
+public partial class MovieEditorViewModel : ObservableObject
 {
-    public partial class MovieEditorViewModel : ObservableObject
+    private ScrollingPreviewViewModel? _scrollViewModel;
+
+    // =========================
+    // 基本設定
+    // =========================
+
+    [ObservableProperty] private DisplaySize? _selectedDisplaySize;
+    [ObservableProperty] private bool _isPresetMode;
+    [ObservableProperty] private AspectRatioItem _selectedAspectRatio = null!;
+    [ObservableProperty] private double _imageWidth = 900;
+    [ObservableProperty] private double _scrollSpeed = 3;
+
+    public ObservableCollection<DisplaySize> DisplaySizes { get; } =
+    [
+        new DisplaySize { Name = "HD", Width = 1280 },
+        new DisplaySize { Name = "FullHD", Width = 1920, Height = 1080 },
+        new DisplaySize { Name = "2K", Width = 2560, Height = 1440 },
+        new DisplaySize { Name = "4K", Width = 3840, Height = 2160 }
+    ];
+
+    public ObservableCollection<AspectRatioItem> AspectRatios { get; } =
+    [
+        new AspectRatioItem("16:9", 16.0/9.0),
+        new AspectRatioItem("4:3", 4.0/3.0),
+        new AspectRatioItem("1:1", 1.0),
+        new AspectRatioItem("3:2", 3.0/2.0)
+    ];
+
+    public MovieEditorViewModel()
     {
+        if (AspectRatios.Count > 0)
+            SelectedAspectRatio = AspectRatios[0];
+    }
 
+    // =========================
+    // UI制御
+    // =========================
 
-        private ScrollingPreviewViewModel? _scrollViewModel;
+    [ObservableProperty] private double _uiOpacity = 1;
+    [ObservableProperty] private double _settingPanelX = 0;
+    [ObservableProperty] private bool _isPlaying;
 
-        [ObservableProperty] private DisplaySize? _selectedDisplaySize;
-        [ObservableProperty] private bool _isPresetMode = false;
-        [ObservableProperty] private ImageFolderType _selectedImageFolder = ImageFolderType.A;
-        [ObservableProperty] private ImageSaveFormat _selectedImageSaveFormat = ImageSaveFormat.Png;
+    [RelayCommand]
+    private void ToggleSettingPanel()
+    {
+        SettingPanelX = SettingPanelX == 0 ? -280 : 0;
+    }
 
-        [ObservableProperty] private ObservableCollection<string> _audioFiles = [];
-        [ObservableProperty] private int _currentAudioIndex = 0;
-        [ObservableProperty] private string _currentAudioFileName = "";
-        [ObservableProperty] private bool _isLoopEnabled = true;
-        [ObservableProperty] private double _fadeDuration = 1.5;
-        [ObservableProperty] private int _audioVolume = 70;
+    [RelayCommand]
+    private static void Close()
+    {
+        Application.Current.Shutdown();
+    }
 
-        [ObservableProperty] private ImageExportFormat _selectedFormat = ImageExportFormat.Png;
-        [ObservableProperty] private double _scrollSpeed = 3;
-        [ObservableProperty] private AspectRatioItem _selectedAspectRatio = null!;
-        [ObservableProperty] private double _imageWidth = 900;
-        [ObservableProperty] private int _exportDurationSeconds = 10;
+    // =========================
+    // 画面サイズ
+    // =========================
 
-        public ObservableCollection<ImageFolderType> ImageFolders { get; } =
-        [
-            ImageFolderType.A, ImageFolderType.B, ImageFolderType.C, ImageFolderType.D
-        ];
-
-        public ObservableCollection<ImageSaveFormat> ImageSaveFormats { get; } =
-        [
-            ImageSaveFormat.Png, ImageSaveFormat.Jpeg
-        ];
-
-        public ObservableCollection<DisplaySize> DisplaySizes { get; } =
-        [
-            new DisplaySize { Name = "HD", Width = 1280 },
-            new DisplaySize { Name = "FullHD", Width = 1920, Height = 1080 },
-            new DisplaySize { Name = "2K", Width = 2560, Height = 1440 },
-            new DisplaySize { Name = "4K", Width = 3840, Height = 2160 }
-        ];
-
-        public ObservableCollection<AspectRatioItem> AspectRatios { get; } =
-        [
-            new AspectRatioItem("16:9", 16.0/9.0),
-            new AspectRatioItem("4:3", 4.0/3.0),
-            new AspectRatioItem("1:1", 1.0),
-            new AspectRatioItem("3:2", 3.0/2.0)
-        ];
-
-        public MovieEditorViewModel()
+    [RelayCommand]
+    private void SelectDisplaySize(DisplaySize size)
+    {
+        if (SelectedDisplaySize == size)
         {
-            if (AspectRatios.Count > 0)
-                SelectedAspectRatio = AspectRatios[0];
+            SelectedDisplaySize = null;
+            IsPresetMode = false;
+            return;
         }
 
-        // =========================
-        // UI連動
-        // =========================
+        SelectedDisplaySize = size;
+        IsPresetMode = true;
+        ImageWidth = size.Width;
+    }
 
-        partial void OnSelectedDisplaySizeChanged(DisplaySize? value)
+    partial void OnImageWidthChanged(double value)
+    {
+        UpdatePreviewSize(value, SelectedAspectRatio.Value);
+    }
+
+    private void UpdatePreviewSize(double width, double aspect)
+    {
+        _scrollViewModel?.UpdateSize(width, aspect);
+        EmbeddedPreviewVM?.UpdateSize(width, aspect);
+    }
+
+    private void UpdateScrollSpeedAll(double speed)
+    {
+        _scrollViewModel?.UpdateScrollSpeed(speed);
+        EmbeddedPreviewVM?.UpdateScrollSpeed(speed);
+    }
+
+    partial void OnScrollSpeedChanged(double value)
+    {
+        UpdateScrollSpeedAll(value);
+    }
+
+    partial void OnSelectedAspectRatioChanged(AspectRatioItem value)
+    {
+        UpdatePreviewSize(ImageWidth, value.Value);
+    }
+
+    // =========================
+    // 音声
+    // =========================
+
+    [ObservableProperty] private ObservableCollection<string> _audioFiles = [];
+    [ObservableProperty] private int _currentAudioIndex;
+    [ObservableProperty] private bool _isLoopEnabled = true;
+    [ObservableProperty] private double _fadeDuration = 1.5;
+
+    [RelayCommand]
+    private void SelectAudio()
+    {
+        var dialog = new OpenFileDialog
         {
-            if (value == null) return;
+            Filter = "Audio Files|*.mp3;*.wav",
+            Multiselect = true
+        };
 
-            IsPresetMode = true;
-            ImageWidth = value.Width;
+        if (dialog.ShowDialog() == true)
+        {
+            AudioFiles.Clear();
+            foreach (var file in dialog.FileNames)
+                AudioFiles.Add(file);
+
+            CurrentAudioIndex = 0;
         }
+    }
 
-        partial void OnImageWidthChanged(double value)
+    private void PlayAudio()
+    {
+        if (_scrollViewModel == null || AudioFiles.Count == 0) return;
+
+        _scrollViewModel.StartAudio(
+            AudioFiles[CurrentAudioIndex],
+            IsLoopEnabled,
+            FadeDuration);
+    }
+
+    private void StopAudio()
+    {
+        _scrollViewModel?.StopAudio(FadeDuration);
+    }
+
+    [RelayCommand]
+    private void TogglePlay()
+    {
+        if (IsPlaying)
         {
-            if (IsPresetMode)
-            {
-                IsPresetMode = false;
-                SelectedDisplaySize = null;
-            }
-
-            _scrollViewModel?.UpdateSize(value, SelectedAspectRatio.Value);
+            StopAudio();
+            IsPlaying = false;
         }
-
-        partial void OnScrollSpeedChanged(double value)
+        else
         {
-            _scrollViewModel?.UpdateScrollSpeed(value);
-        }
-
-        partial void OnSelectedAspectRatioChanged(AspectRatioItem value)
-        {
-            _scrollViewModel?.UpdateSize(ImageWidth, value.Value);
-        }
-
-        // =========================
-        // コマンド（全部復元）
-        // =========================
-
-        [RelayCommand]
-        private void SelectDisplaySize(DisplaySize size)
-        {
-            if (SelectedDisplaySize == size)
-            {
-                SelectedDisplaySize = null;
-                IsPresetMode = false;
-                return;
-            }
-
-            SelectedDisplaySize = size;
-            IsPresetMode = true;
-            ImageWidth = size.Width;
-        }
-
-        [RelayCommand]
-        private void AddImageToFolder()
-        {
-            var dialog = new OpenFileDialog
-            {
-                Filter = "Image Files|*.png;*.jpg;*.jpeg",
-                Multiselect = true
-            };
-
-            if (dialog.ShowDialog() != true) return;
-
-            ImageStorageService.SaveImages(dialog.FileNames, SelectedImageFolder, SelectedImageSaveFormat);
-
-            MessageBox.Show("画像追加完了");
-        }
-
-        [RelayCommand]
-        private void DeleteImagesInFolder()
-        {
-            ImageStorageService.DeleteImages(SelectedImageFolder);
-        }
-
-        [RelayCommand]
-        private void SelectAudio()
-        {
-            var dialog = new OpenFileDialog
-            {
-                Filter = "Audio Files|*.mp3;*.wav;*.m4a;*.wma",
-                Multiselect = true
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                AudioFiles.Clear();
-
-                foreach (var file in dialog.FileNames)
-                    AudioFiles.Add(file);
-
-                if (AudioFiles.Count > 0)
-                {
-                    CurrentAudioIndex = 0;
-                    CurrentAudioFileName = Path.GetFileName(AudioFiles[0]);
-                }
-            }
-        }
-
-        [RelayCommand]
-        private void PlayAudio()
-        {
-            if (_scrollViewModel == null || AudioFiles.Count == 0) return;
-
-            _scrollViewModel.StartAudio(
-                AudioFiles[CurrentAudioIndex],
-                IsLoopEnabled,
-                FadeDuration);
-        }
-
-        [RelayCommand]
-        private void StopAudio()
-        {
-            _scrollViewModel?.StopAudio(FadeDuration);
-        }
-
-        [RelayCommand]
-        private void NextAudio()
-        {
-            if (AudioFiles.Count == 0) return;
-
-            CurrentAudioIndex = (CurrentAudioIndex + 1) % AudioFiles.Count;
-            CurrentAudioFileName = Path.GetFileName(AudioFiles[CurrentAudioIndex]);
-
             PlayAudio();
+            IsPlaying = true;
         }
+    }
 
-        [RelayCommand]
-        private void PrevAudio()
+    [RelayCommand]
+    private void NextAudio()
+    {
+        if (AudioFiles.Count == 0) return;
+
+        CurrentAudioIndex = (CurrentAudioIndex + 1) % AudioFiles.Count;
+        PlayAudio();
+    }
+
+    [RelayCommand]
+    private void PrevAudio()
+    {
+        if (AudioFiles.Count == 0) return;
+
+        CurrentAudioIndex--;
+        if (CurrentAudioIndex < 0)
+            CurrentAudioIndex = AudioFiles.Count - 1;
+
+        PlayAudio();
+    }
+
+    // =========================
+    // プレビュー生成
+    // =========================
+
+    private void CreatePreview(out double width, out double height)
+    {
+        if (IsPresetMode && SelectedDisplaySize != null)
         {
-            if (AudioFiles.Count == 0) return;
-
-            CurrentAudioIndex--;
-            if (CurrentAudioIndex < 0)
-                CurrentAudioIndex = AudioFiles.Count - 1;
-
-            CurrentAudioFileName = Path.GetFileName(AudioFiles[CurrentAudioIndex]);
-
-            PlayAudio();
+            width = SelectedDisplaySize.Width;
+            height = SelectedDisplaySize.Height;
         }
-
-        [RelayCommand]
-        private void OpenScroll1Row()
+        else
         {
-            double width;
-            double height;
-
-            if (IsPresetMode && SelectedDisplaySize != null)
-            {
-                width = SelectedDisplaySize.Width;
-                height = SelectedDisplaySize.Height;
-            }
-            else
-            {
-                width = ImageWidth;
-                height = ImageWidth / SelectedAspectRatio.Value;
-            }
-
-            var window = new ShowMovie
-            {
-                Width = width,
-                Height = height,
-                WindowStartupLocation = WindowStartupLocation.CenterScreen
-            };
-
-            _scrollViewModel = new ScrollingPreviewViewModel(
-                height,
-                SelectedAspectRatio.Value,
-                ScrollSpeed);
-
-            window.DataContext = _scrollViewModel;
-            window.Show();
+            width = ImageWidth;
+            height = ImageWidth / SelectedAspectRatio.Value;
         }
+    }
 
-        [RelayCommand]
-        private async Task ExportPng()
+    // =========================
+    // Window再生
+    // =========================
+
+    [RelayCommand]
+    private void OpenScroll1Row()
+    {
+        CreatePreview(out var width, out var height);
+
+        _scrollViewModel = new ScrollingPreviewViewModel(
+            height,
+            SelectedAspectRatio.Value,
+            ScrollSpeed);
+
+        var window = new ShowMovie
         {
-            SelectedFormat = ImageExportFormat.Png;
-            await Export();
-        }
+            Width = width,
+            Height = height,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen,
+            DataContext = _scrollViewModel
+        };
 
-        [RelayCommand]
-        private async Task ExportJpeg()
-        {
-            SelectedFormat = ImageExportFormat.Jpeg;
-            await Export();
-        }
+        window.Show();
+    }
 
-        private async Task Export()
-        {
-            if (_scrollViewModel == null) return;
+    // =========================
+    // 埋め込み再生
+    // =========================
 
-            await VideoExportService.ExportAsync(
-                _scrollViewModel,
-                SelectedFormat,
-                ExportDurationSeconds,
-                SelectedDisplaySize,
-                IsPresetMode,
-                ImageWidth,
-                SelectedAspectRatio,
-                AudioFiles,
-                CurrentAudioIndex);
-        }
+    [ObservableProperty]
+    private bool _isEmbeddedMode;
+
+    [ObservableProperty]
+    private ScrollingPreviewViewModel? _embeddedPreviewVM;
+
+    [RelayCommand]
+    private void OpenScrollEmbedded()
+    {
+        CreatePreview(out var width, out var height);
+
+        EmbeddedPreviewVM = new ScrollingPreviewViewModel(
+            height,
+            SelectedAspectRatio.Value,
+            ScrollSpeed);
+
+        IsEmbeddedMode = true;
+    }
+
+    [RelayCommand]
+    private void CloseEmbedded()
+    {
+        IsEmbeddedMode = false;
+        EmbeddedPreviewVM = null;
     }
 }

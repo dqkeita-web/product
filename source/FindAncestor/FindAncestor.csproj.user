@@ -2,10 +2,10 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup />
   <ItemGroup>
-    <Compile Update="ViewModels\MovieEditorView.xaml.cs">
+    <Compile Update="Views\MovieEditorView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="ViewModels\ScrollingPreviewView.xaml.cs">
+    <Compile Update="Views\ScrollingPreviewView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

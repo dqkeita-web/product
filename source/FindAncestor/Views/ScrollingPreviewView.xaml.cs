@@ -8,13 +8,14 @@ namespace FindAncestor.Views
         public ScrollingPreviewView()
         {
             InitializeComponent();
+
         }
 
         // 画像の高さを指定
         public double ImageHeight
         {
-            get { return (double)GetValue(ImageHeightProperty); }
-            set { SetValue(ImageHeightProperty, value); }
+            get => (double)GetValue(ImageHeightProperty);
+            set => SetValue(ImageHeightProperty, value);
         }
 
         public static readonly DependencyProperty ImageHeightProperty =
@@ -23,8 +24,8 @@ namespace FindAncestor.Views
         // 縦横比（Width / Height）
         public double AspectRatio
         {
-            get { return (double)GetValue(AspectRatioProperty); }
-            set { SetValue(AspectRatioProperty, value); }
+            get => (double)GetValue(AspectRatioProperty);
+            set => SetValue(AspectRatioProperty, value);
         }
 
         public static readonly DependencyProperty AspectRatioProperty =
