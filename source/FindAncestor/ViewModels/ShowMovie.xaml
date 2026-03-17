@@ -1,5 +1,5 @@
 ﻿<Window
-    x:Class="FindAncestor.Views.Scroll1RowWindow"
+    x:Class="FindAncestor.Views.ShowMovie"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:FindAncestor.Views"
@@ -13,6 +13,6 @@
 
         <!--  3:2 の場合 → AspectRatio="1.5"  -->
 
-        <local:Scroll1RowView AspectRatio="1.333333" ImageHeight="300" />
+        <local:ScrollingPreviewView AspectRatio="1.333333" ImageHeight="300" />
     </Grid>
 </Window>

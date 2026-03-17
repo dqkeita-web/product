@@ -2,9 +2,9 @@
 
 namespace FindAncestor.Views
 {
-    public partial class Scroll1RowWindow : Window
+    public partial class ShowMovie : Window
     {
-        public Scroll1RowWindow()
+        public ShowMovie()
         {
             InitializeComponent();
         }

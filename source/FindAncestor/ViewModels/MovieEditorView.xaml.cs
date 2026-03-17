@@ -2,9 +2,9 @@
 
 namespace FindAncestor.Views
 {
-    public partial class MainMenuView : Window
+    public partial class MovieEditorView : Window
     {
-        public MainMenuView()
+        public MovieEditorView()
         {
             InitializeComponent();
         }

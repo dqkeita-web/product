@@ -1,7 +1,8 @@
 ﻿<Window
-    x:Class="FindAncestor.Views.MainMenuView"
+    x:Class="FindAncestor.Views.MovieEditorView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewModels="clr-namespace:FindAncestor.ViewModels"
     xmlns:views="clr-namespace:FindAncestor.Views"
     Title="映像スクロールメーカー"
     Width="1000"
@@ -9,7 +10,7 @@
     Background="#141414"
     WindowStartupLocation="CenterScreen">
     <Window.DataContext>
-        <views:MainMenuViewModel />
+        <viewModels:MovieEditorViewModel />
     </Window.DataContext>
     <!--  =========================  -->
     <!--  スタイル  -->
@@ -198,7 +199,7 @@
             Background="Black"
             CornerRadius="6">
             <!--  Scroll1RowViewを直接表示  -->
-            <views:Scroll1RowView />
+            <views:ScrollingPreviewView />
         </Border>
         <!--  =========================  -->
         <!--  下パネル  -->

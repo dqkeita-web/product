@@ -1,13 +1,15 @@
 ﻿using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using FindAncestor.Models;
 
-namespace FindAncestor.Views
+namespace FindAncestor.ViewModels
 {
-    public partial class Scroll1RowViewModel : ObservableObject
+    public partial class ScrollingPreviewViewModel : ObservableObject
     {
         public ObservableCollection<ImageWithWidth> ScrollImages { get; } = new();
 
@@ -26,13 +28,11 @@ namespace FindAncestor.Views
         [ObservableProperty]
         private double _aspectRatio;
 
-        // 追加: 横スクロール位置
+        // 横スクロール位置
         [ObservableProperty]
         private double _scrollPosition;
 
-
-
-        public Scroll1RowViewModel(
+        public ScrollingPreviewViewModel(
             double imageHeight,
             double aspectRatio,
             double scrollSpeed)
@@ -77,8 +77,7 @@ namespace FindAncestor.Views
             _mediaPlayer.Open(new Uri(path));
         }
 
-
-    public void StopAudio(double fadeSeconds)
+        public void StopAudio(double fadeSeconds)
         {
             if (_mediaPlayer == null) return;
             StartFade(0, fadeSeconds, false);
@@ -138,6 +137,7 @@ namespace FindAncestor.Views
 
             _fadeTimer.Start();
         }
+
         public double GetCurrentAudioPositionSeconds()
         {
             if (_mediaPlayer == null)
@@ -145,8 +145,6 @@ namespace FindAncestor.Views
 
             return _mediaPlayer.Position.TotalSeconds;
         }
-
-
 
         public void StartAudio(string path, bool loop, double fadeSeconds)
         {
@@ -237,17 +235,6 @@ namespace FindAncestor.Views
         public void Dispose()
         {
             StopAudio();
-
         }
     }
-
-
-    public class ImageWithWidth
-    {
-        public ImageSource Source { get; set; } = null!;
-        public double Width { get; set; }
-        public double Height { get; set; }
-    }
-
-
 }

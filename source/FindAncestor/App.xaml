@@ -1,7 +1,7 @@
 ﻿<Application
     x:Class="FindAncestor.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    StartupUri="/Views/MainMenuView.xaml"
+    StartupUri="/ViewModels/MovieEditorView.xaml"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:FindAncestor">
 

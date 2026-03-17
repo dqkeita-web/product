@@ -18,6 +18,7 @@
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Behaviors\" />
     <Folder Include="Image\B\" />
     <Folder Include="Image\C\" />
     <Folder Include="Image\D\" />

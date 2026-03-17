@@ -1,5 +1,8 @@
-﻿public enum ImageExportFormat
+﻿namespace FindAncestor.Enum
 {
-    Png,
-    Jpeg
+    public enum ImageExportFormat
+    {
+        Png,
+        Jpeg
+    }
 }

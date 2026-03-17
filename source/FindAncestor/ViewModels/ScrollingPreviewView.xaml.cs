@@ -3,9 +3,9 @@ using System.Windows.Controls;
 
 namespace FindAncestor.Views
 {
-    public partial class Scroll1RowView : UserControl
+    public partial class ScrollingPreviewView : UserControl
     {
-        public Scroll1RowView()
+        public ScrollingPreviewView()
         {
             InitializeComponent();
         }
@@ -18,7 +18,7 @@ namespace FindAncestor.Views
         }
 
         public static readonly DependencyProperty ImageHeightProperty =
-            DependencyProperty.Register(nameof(ImageHeight), typeof(double), typeof(Scroll1RowView), new PropertyMetadata(450.0));
+            DependencyProperty.Register(nameof(ImageHeight), typeof(double), typeof(ScrollingPreviewView), new PropertyMetadata(450.0));
 
         // 縦横比（Width / Height）
         public double AspectRatio
@@ -28,6 +28,6 @@ namespace FindAncestor.Views
         }
 
         public static readonly DependencyProperty AspectRatioProperty =
-            DependencyProperty.Register(nameof(AspectRatio), typeof(double), typeof(Scroll1RowView), new PropertyMetadata(16.0 / 9.0));
+            DependencyProperty.Register(nameof(AspectRatio), typeof(double), typeof(ScrollingPreviewView), new PropertyMetadata(16.0 / 9.0));
     }
 }
