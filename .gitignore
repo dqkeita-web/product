@@ -1,0 +1,7 @@
+﻿################################################################################
+# この .gitignore ファイルは Microsoft(R) Visual Studio によって自動的に作成されました。
+################################################################################
+
+/source/FindAncestor/.vs
+/source/FindAncestor/bin/Debug/net10.0-windows
+/source/FindAncestor/obj

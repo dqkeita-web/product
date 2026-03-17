@@ -7,7 +7,7 @@ namespace FindAncestor.Services
 {
     public class ImageStorageService
     {
-        public void SaveImages(string[] files, ImageFolderType folder, ImageSaveFormat format)
+        public static void SaveImages(string[] files, ImageFolderType folder, ImageSaveFormat format)
         {
             string baseFolder = Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory,
@@ -25,7 +25,7 @@ namespace FindAncestor.Services
             {
                 try
                 {
-                    BitmapImage bitmap = new BitmapImage(new Uri(file));
+                    BitmapImage bitmap = new(new Uri(file));
 
                     BitmapEncoder encoder =
                         format == ImageSaveFormat.Jpeg
@@ -46,7 +46,7 @@ namespace FindAncestor.Services
             }
         }
 
-        public void DeleteImages(ImageFolderType folder)
+        public static void DeleteImages(ImageFolderType folder)
         {
             string baseFolder = Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory,

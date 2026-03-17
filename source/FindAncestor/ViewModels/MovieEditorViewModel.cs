@@ -1,6 +1,5 @@
 ﻿using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,8 +13,7 @@ namespace FindAncestor.ViewModels
 {
     public partial class MovieEditorViewModel : ObservableObject
     {
-        private readonly ImageStorageService _imageService = new();
-        private readonly VideoExportService _videoService = new();
+
 
         private ScrollingPreviewViewModel? _scrollViewModel;
 
@@ -24,11 +22,11 @@ namespace FindAncestor.ViewModels
         [ObservableProperty] private ImageFolderType _selectedImageFolder = ImageFolderType.A;
         [ObservableProperty] private ImageSaveFormat _selectedImageSaveFormat = ImageSaveFormat.Png;
 
-        [ObservableProperty] private ObservableCollection<string> audioFiles = new();
-        [ObservableProperty] private int currentAudioIndex = 0;
-        [ObservableProperty] private string currentAudioFileName = "";
-        [ObservableProperty] private bool isLoopEnabled = true;
-        [ObservableProperty] private double fadeDuration = 1.5;
+        [ObservableProperty] private ObservableCollection<string> _audioFiles = [];
+        [ObservableProperty] private int _currentAudioIndex = 0;
+        [ObservableProperty] private string _currentAudioFileName = "";
+        [ObservableProperty] private bool _isLoopEnabled = true;
+        [ObservableProperty] private double _fadeDuration = 1.5;
         [ObservableProperty] private int _audioVolume = 70;
 
         [ObservableProperty] private ImageExportFormat _selectedFormat = ImageExportFormat.Png;
@@ -37,31 +35,31 @@ namespace FindAncestor.ViewModels
         [ObservableProperty] private double _imageWidth = 900;
         [ObservableProperty] private int _exportDurationSeconds = 10;
 
-        public ObservableCollection<ImageFolderType> ImageFolders { get; } = new()
-        {
+        public ObservableCollection<ImageFolderType> ImageFolders { get; } =
+        [
             ImageFolderType.A, ImageFolderType.B, ImageFolderType.C, ImageFolderType.D
-        };
+        ];
 
-        public ObservableCollection<ImageSaveFormat> ImageSaveFormats { get; } = new()
-        {
+        public ObservableCollection<ImageSaveFormat> ImageSaveFormats { get; } =
+        [
             ImageSaveFormat.Png, ImageSaveFormat.Jpeg
-        };
+        ];
 
-        public ObservableCollection<DisplaySize> DisplaySizes { get; } = new()
-        {
+        public ObservableCollection<DisplaySize> DisplaySizes { get; } =
+        [
             new DisplaySize { Name = "HD", Width = 1280 },
             new DisplaySize { Name = "FullHD", Width = 1920, Height = 1080 },
             new DisplaySize { Name = "2K", Width = 2560, Height = 1440 },
             new DisplaySize { Name = "4K", Width = 3840, Height = 2160 }
-        };
+        ];
 
-        public ObservableCollection<AspectRatioItem> AspectRatios { get; } = new()
-        {
+        public ObservableCollection<AspectRatioItem> AspectRatios { get; } =
+        [
             new AspectRatioItem("16:9", 16.0/9.0),
             new AspectRatioItem("4:3", 4.0/3.0),
             new AspectRatioItem("1:1", 1.0),
             new AspectRatioItem("3:2", 3.0/2.0)
-        };
+        ];
 
         public MovieEditorViewModel()
         {
@@ -132,7 +130,7 @@ namespace FindAncestor.ViewModels
 
             if (dialog.ShowDialog() != true) return;
 
-            _imageService.SaveImages(dialog.FileNames, SelectedImageFolder, SelectedImageSaveFormat);
+            ImageStorageService.SaveImages(dialog.FileNames, SelectedImageFolder, SelectedImageSaveFormat);
 
             MessageBox.Show("画像追加完了");
         }
@@ -140,7 +138,7 @@ namespace FindAncestor.ViewModels
         [RelayCommand]
         private void DeleteImagesInFolder()
         {
-            _imageService.DeleteImages(SelectedImageFolder);
+            ImageStorageService.DeleteImages(SelectedImageFolder);
         }
 
         [RelayCommand]
@@ -243,14 +241,14 @@ namespace FindAncestor.ViewModels
         }
 
         [RelayCommand]
-        private async void ExportPng()
+        private async Task ExportPng()
         {
             SelectedFormat = ImageExportFormat.Png;
             await Export();
         }
 
         [RelayCommand]
-        private async void ExportJpeg()
+        private async Task ExportJpeg()
         {
             SelectedFormat = ImageExportFormat.Jpeg;
             await Export();
@@ -260,7 +258,7 @@ namespace FindAncestor.ViewModels
         {
             if (_scrollViewModel == null) return;
 
-            await _videoService.ExportAsync(
+            await VideoExportService.ExportAsync(
                 _scrollViewModel,
                 SelectedFormat,
                 ExportDurationSeconds,

@@ -10,9 +10,9 @@ namespace FindAncestor.Services
 {
     public class VideoExportService
     {
-        public async Task ExportAsync(
+        public static async Task ExportAsync(
             ScrollingPreviewViewModel vm,
-            ImageExportFormat format,
+                ImageExportFormat format,
             int durationSeconds,
             DisplaySize? displaySize,
             bool isPreset,

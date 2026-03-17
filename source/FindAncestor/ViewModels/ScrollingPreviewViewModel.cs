@@ -1,6 +1,5 @@
 ﻿using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -11,11 +10,9 @@ namespace FindAncestor.ViewModels
 {
     public partial class ScrollingPreviewViewModel : ObservableObject
     {
-        public ObservableCollection<ImageWithWidth> ScrollImages { get; } = new();
+        public ObservableCollection<ImageWithWidth> ScrollImages { get; } = [];
 
         private MediaPlayer? _mediaPlayer;
-
-        private bool _isLoopEnabled;
 
         private DispatcherTimer? _fadeTimer;
 
@@ -44,39 +41,6 @@ namespace FindAncestor.ViewModels
             LoadImages(imageHeight, aspectRatio);
         }
 
-        /// <summary>
-        /// 音声再生
-        /// </summary>
-        public void PlayAudio(string path, int volume0to100, bool loop)
-        {
-            StopAudio();
-
-            if (string.IsNullOrEmpty(path))
-                return;
-
-            _isLoopEnabled = loop;
-
-            _mediaPlayer = new MediaPlayer();
-
-            _mediaPlayer.MediaOpened += (s, e) =>
-            {
-                // 0-100 → 0.0-1.0 へ変換
-                _mediaPlayer.Volume = Math.Clamp(volume0to100 / 100.0, 0, 1);
-                _mediaPlayer.Play();
-            };
-
-            _mediaPlayer.MediaEnded += (s, e) =>
-            {
-                if (_isLoopEnabled && _mediaPlayer != null)
-                {
-                    _mediaPlayer.Position = TimeSpan.Zero;
-                    _mediaPlayer.Play();
-                }
-            };
-
-            _mediaPlayer.Open(new Uri(path));
-        }
-
         public void StopAudio(double fadeSeconds)
         {
             if (_mediaPlayer == null) return;
@@ -91,12 +55,6 @@ namespace FindAncestor.ViewModels
                 _mediaPlayer.Close();
                 _mediaPlayer = null;
             }
-        }
-
-        public void SetVolume(double volume)
-        {
-            if (_mediaPlayer != null)
-                _mediaPlayer.Volume = volume;  // 0-1
         }
 
         private void StartFade(double targetVolume, double durationSeconds, bool fadeIn)
@@ -138,13 +96,7 @@ namespace FindAncestor.ViewModels
             _fadeTimer.Start();
         }
 
-        public double GetCurrentAudioPositionSeconds()
-        {
-            if (_mediaPlayer == null)
-                return 0;
 
-            return _mediaPlayer.Position.TotalSeconds;
-        }
 
         public void StartAudio(string path, bool loop, double fadeSeconds)
         {
@@ -172,10 +124,10 @@ namespace FindAncestor.ViewModels
             ScrollImages.Clear();
 
             string baseFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Image");
-            string[] folders = { "A", "B", "C", "D" };
+            string[] folders = ["A", "B", "C", "D"];
 
             // 対応拡張子
-            string[] extensions = { "*.png", "*.jpg", "*.jpeg" };
+            string[] extensions = ["*.png", "*.jpg", "*.jpeg"];
 
             foreach (var f in folders)
             {
@@ -215,16 +167,16 @@ namespace FindAncestor.ViewModels
             }
 
             // 無限スクロール用にコピー
-            int count = ScrollImages.Count;
-            for (int i = 0; i < count; i++)
+            var count = ScrollImages.Count;
+            for (var i = 0; i < count; i++)
                 ScrollImages.Add(ScrollImages[i]);
         }
 
         public void UpdateSize(double imageWidth, double aspectRatio)
         {
-            _aspectRatio = aspectRatio;
-            _imageHeight = imageWidth / aspectRatio;
-            LoadImages(_imageHeight, _aspectRatio);
+            AspectRatio = aspectRatio;
+            ImageHeight = imageWidth / aspectRatio;
+            LoadImages(ImageHeight, AspectRatio);
         }
 
         public void UpdateScrollSpeed(double speed)

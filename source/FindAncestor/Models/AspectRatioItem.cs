@@ -1,17 +1,11 @@
 ﻿namespace FindAncestor.Models
 {
-    public class AspectRatioItem
+    public class AspectRatioItem(string displayText, double value)
     {
         // UI表示用
-        public string DisplayText { get; set; } = "";
+        public string DisplayText { get; set; } = displayText;
 
         // 内部計算用（double）
-        public double Value { get; set; }
-
-        public AspectRatioItem(string displayText, double value)
-        {
-            DisplayText = displayText;
-            Value = value;
-        }
+        public double Value { get; set; } = value;
     }
 }
