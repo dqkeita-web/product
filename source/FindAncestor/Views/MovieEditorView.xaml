@@ -4,32 +4,16 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:views="clr-namespace:FindAncestor.Views"
+    x:Name="RootWindow"
     Title="映像スクロールメーカー"
     Background="Black"
     WindowStyle="None">
-
-    <Window.Resources>
-
-        <!--  アイコンフォント  -->
-        <Style x:Key="IconButton" TargetType="Button">
-            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
-            <Setter Property="FontSize" Value="22" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="Background" Value="#22000000" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Width" Value="48" />
-            <Setter Property="Height" Value="48" />
-            <Setter Property="Margin" Value="4" />
-        </Style>
-
-    </Window.Resources>
-
-    <Grid>
-
-        <!--  =================  -->
-        <!--  動画エリア  -->
-        <!--  =================  -->
-        <views:ScrollingPreviewView>
+    <Grid
+        x:Name="RootGrid"
+        MouseMove="RootGrid_MouseMove"
+        MouseRightButtonDown="RootGrid_MouseRightButtonDown"
+        MouseRightButtonUp="RootGrid_MouseRightButtonUp">
+        <views:ScrollingPreviewView DataContext="{Binding EmbeddedPreviewViewModel}">
             <b:Interaction.Triggers>
                 <b:EventTrigger EventName="MouseMove">
                     <b:InvokeCommandAction Command="{Binding ShowUICommand}" />
@@ -39,105 +23,367 @@
                 </b:EventTrigger>
             </b:Interaction.Triggers>
         </views:ScrollingPreviewView>
-
-        <!--  =================  -->
-        <!--  埋め込み再生  -->
-        <!--  =================  -->
         <Border Background="#AA000000" Visibility="{Binding IsEmbeddedMode, Converter={StaticResource BooleanToVisibilityConverter}}">
-
             <Grid>
-                <views:ScrollingPreviewView DataContext="{Binding EmbeddedPreviewVM}" />
-
+                <views:ScrollingPreviewView
+                    AllowDrop="True"
+                    DataContext="{Binding EmbeddedPreviewViewModel}"
+                    Drop="OnDrop" />
                 <Button
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
                     Command="{Binding CloseEmbeddedCommand}"
                     Content=""
-                    Style="{StaticResource IconButton}" />
+                    Opacity="{Binding UiOpacity}"
+                    Style="{StaticResource AnimatedIconButton}"
+                    ToolTip="閉じる" />
             </Grid>
         </Border>
-
-        <!--  =================  -->
-        <!--  右ツール（TikTok風）  -->
-        <!--  =================  -->
         <StackPanel
-            Margin="10"
+            Margin="20"
             HorizontalAlignment="Right"
             VerticalAlignment="Center">
-
-            <Button
-                Command="{Binding AddImageToFolderCommand}"
-                Content=""
-                Style="{StaticResource IconButton}" />
-
-            <Button
-                Command="{Binding DeleteImagesInFolderCommand}"
-                Content=""
-                Style="{StaticResource IconButton}" />
-
-            <Button
-                Command="{Binding SelectAudioCommand}"
-                Content=""
-                Style="{StaticResource IconButton}" />
-
-            <Button
-                Command="{Binding OpenScroll1RowCommand}"
-                Content=""
-                Style="{StaticResource IconButton}" />
-
-            <Button
-                Command="{Binding OpenScrollEmbeddedCommand}"
-                Content=""
-                Style="{StaticResource IconButton}" />
-
+            <StackPanel Background="#66000000">
+                <Button
+                    Command="{Binding ToggleAddPanelCommand}"
+                    Content=""
+                    ToolTip="追加">
+                    <Button.Style>
+                        <Style BasedOn="{StaticResource AddToggleButton}" TargetType="Button">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentPanelMode}" Value="Add">
+                                    <Setter Property="Background" Value="#AAFFFFFF" />
+                                    <Setter Property="Foreground" Value="Black" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Canvas
+                    Width="0"
+                    Height="0"
+                    IsHitTestVisible="{Binding IsFolderSelectVisible}">
+                    <Border
+                        Canvas.Top="-120"
+                        Canvas.Right="60"
+                        Width="120"
+                        Padding="6"
+                        Background="#88000000"
+                        CornerRadius="16"
+                        IsHitTestVisible="{Binding IsFolderSelectVisible}"
+                        Visibility="{Binding CurrentPanelMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Add}">
+                        <ItemsControl ItemsSource="{Binding FolderPreviews}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Vertical" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button
+                                        Width="56"
+                                        Height="56"
+                                        Margin="4"
+                                        Command="{Binding DataContext.SelectFolderAndAddImagesCommand, ElementName=RootWindow}"
+                                        CommandParameter="{Binding Folder}"
+                                        Style="{StaticResource FolderFloatingButton}">
+                                        <Grid>
+                                            <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                            <Border Background="#66000000" />
+                                            <Border
+                                                Height="4"
+                                                VerticalAlignment="Top"
+                                                Background="{Binding Color}" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+                </Canvas>
+                <Button
+                    Command="{Binding SelectAudioCommand}"
+                    Content=""
+                    Style="{StaticResource AnimatedIconButton}"
+                    ToolTip="曲選択" />
+                <Button
+                    Command="{Binding OpenEmbeddedScrollCommand}"
+                    Content=""
+                    Style="{StaticResource AnimatedIconButton}"
+                    ToolTip="停止" />
+                <Button
+                    Command="{Binding CloseApplication}"
+                    Content=""
+                    Style="{StaticResource AnimatedIconButton}"
+                    ToolTip="アプリ終了" />
+                <Grid>
+                    <Button
+                        Command="{Binding ToggleDeletePanelCommand}"
+                        Content=""
+                        ToolTip="削除">
+                        <Button.Style>
+                            <Style BasedOn="{StaticResource AddToggleButton}" TargetType="Button">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentPanelMode}" Value="Delete">
+                                        <Setter Property="Background" Value="#AAFFFFFF" />
+                                        <Setter Property="Foreground" Value="Black" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Canvas Width="0" Height="0">
+                        <Border
+                            Canvas.Top="-120"
+                            Canvas.Right="60"
+                            Width="120"
+                            Padding="6"
+                            Background="#88000000"
+                            CornerRadius="16"
+                            Visibility="{Binding CurrentPanelMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Delete}">
+                            <ItemsControl ItemsSource="{Binding FolderPreviews}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Vertical" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button
+                                            Width="56"
+                                            Height="56"
+                                            Margin="4"
+                                            Command="{Binding DataContext.DeleteFolderImagesCommand, ElementName=RootWindow}"
+                                            CommandParameter="{Binding Folder}"
+                                            Style="{StaticResource FolderFloatingButton}">
+                                            <Grid>
+                                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                <Border Background="#66000000" />
+                                                <Border
+                                                    Height="4"
+                                                    VerticalAlignment="Top"
+                                                    Background="{Binding Color}" />
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontFamily="Segoe MDL2 Assets"
+                                                    FontSize="18"
+                                                    Foreground="White"
+                                                    Text="" />
+                                            </Grid>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                    </Canvas>
+                </Grid>
+                <Grid Margin="0,8,0,0">
+                    <Button
+                        Command="{Binding TogglePlayPanelCommand}"
+                        Content=""
+                        ToolTip="再生">
+                        <Button.Style>
+                            <Style BasedOn="{StaticResource AddToggleButton}" TargetType="Button">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentPanelMode}" Value="Play">
+                                        <Setter Property="Background" Value="#AAFFFFFF" />
+                                        <Setter Property="Foreground" Value="Black" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Canvas Width="0" Height="0">
+                        <Border
+                            Canvas.Top="-120"
+                            Canvas.Right="60"
+                            Width="120"
+                            Padding="6"
+                            Background="#88000000"
+                            CornerRadius="16"
+                            Visibility="{Binding CurrentPanelMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Play}">
+                            <ItemsControl ItemsSource="{Binding FolderPreviews}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Vertical" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Button
+                                                Width="56"
+                                                Height="56"
+                                                Margin="4"
+                                                Command="{Binding DataContext.SelectPlayFolderCommand, ElementName=RootWindow}"
+                                                CommandParameter="{Binding Folder}"
+                                                Style="{StaticResource FolderFloatingButton}">
+                                                <Grid>
+                                                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                    <Border Background="#66000000" />
+                                                    <Border
+                                                        Height="4"
+                                                        VerticalAlignment="Top"
+                                                        Background="{Binding Color}" />
+                                                </Grid>
+                                            </Button>
+                                            <Border
+                                                BorderBrush="White"
+                                                BorderThickness="2"
+                                                CornerRadius="8"
+                                                IsHitTestVisible="False"
+                                                Opacity="0.9">
+                                                <Border.Visibility>
+                                                    <MultiBinding Converter="{StaticResource SelectedFolderHighlightConverter}">
+                                                        <Binding Path="DataContext.SelectedPlayFolder" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                        <Binding Path="Folder" />
+                                                    </MultiBinding>
+                                                </Border.Visibility>
+                                            </Border>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                    </Canvas>
+                </Grid>
+            </StackPanel>
+            <!--  右下スライダーUI（完成版）  -->
+            <Grid
+                Margin="20"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Panel.ZIndex="999">
+                <StackPanel HorizontalAlignment="Right">
+                    <!--  スライダー表示エリア  -->
+                    <Canvas Width="0" Height="0">
+                        <!--  音量  -->
+                        <Border
+                            Canvas.Right="30"
+                            Canvas.Bottom="-50"
+                            Width="160"
+                            Height="20"
+                            Background="#88000000"
+                            CornerRadius="5"
+                            RenderTransformOrigin="0.5,0.5"
+                            Visibility="{Binding CurrentSliderMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Volume}">
+                            <Slider
+                                Maximum="60"
+                                Minimum="0"
+                                Orientation="Horizontal"
+                                Value="{Binding Volume, Mode=TwoWay}" />
+                        </Border>
+                        <!--  再生速度  -->
+                        <Border
+                            Canvas.Right="30"
+                            Canvas.Bottom="-105"
+                            Width="160"
+                            Height="20"
+                            Background="#88000000"
+                            CornerRadius="5"
+                            RenderTransformOrigin="0.5,0.5"
+                            Visibility="{Binding CurrentSliderMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Speed}">
+                            <Slider
+                                Maximum="15"
+                                Minimum="-15"
+                                Orientation="Horizontal"
+                                Value="{Binding ScrollSpeed, Mode=TwoWay}" />
+                        </Border>
+                        <!--  サイズ  -->
+                        <Border
+                            Canvas.Right="30"
+                            Canvas.Bottom="-155"
+                            Width="160"
+                            Height="20"
+                            Background="#88000000"
+                            CornerRadius="5"
+                            RenderTransformOrigin="0.5,0.5"
+                            Visibility="{Binding CurrentSliderMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Size}">
+                            <Slider
+                                Maximum="2000"
+                                Minimum="300"
+                                Orientation="Horizontal"
+                                PreviewMouseLeftButtonUp="OnSizeSliderReleased"
+                                Value="{Binding ImageWidth, Mode=TwoWay}" />
+                        </Border>
+                    </Canvas>
+                    <!--  トグルボタン  -->
+                    <StackPanel Margin="0,8,0,0">
+                        <Button
+                            Command="{Binding ToggleVolumeSliderCommand}"
+                            Content=""
+                            Style="{StaticResource AnimatedIconButton}"
+                            ToolTip="音量調整" />
+                        <Button
+                            Command="{Binding ToggleSpeedSliderCommand}"
+                            Content=""
+                            Style="{StaticResource AnimatedIconButton}"
+                            ToolTip="再生速度" />
+                        <Button
+                            Command="{Binding ToggleSizeSliderCommand}"
+                            Content=""
+                            Style="{StaticResource AnimatedIconButton}"
+                            ToolTip="画面サイズ" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
         </StackPanel>
-
-        <!--  =================  -->
-        <!--  下コントロール（YouTube風）  -->
-        <!--  =================  -->
         <Border
-            Padding="10"
+            Margin="20"
+            Padding="8"
             VerticalAlignment="Bottom"
-            Background="#66000000">
-
+            Background="#88000000"
+            CornerRadius="12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-
-                <!--  再生  -->
                 <StackPanel Orientation="Horizontal">
                     <Button
-                        Command="{Binding PrevAudioCommand}"
+                        Command="{Binding PreviousAudioCommand}"
                         Content=""
-                        Style="{StaticResource IconButton}" />
+                        Style="{StaticResource AnimatedIconButton}" />
 
                     <Button
                         Command="{Binding TogglePlayCommand}"
                         Content=""
-                        Style="{StaticResource IconButton}" />
+                        Style="{StaticResource AnimatedIconButton}" />
 
                     <Button
                         Command="{Binding NextAudioCommand}"
                         Content=""
-                        Style="{StaticResource IconButton}" />
+                        Style="{StaticResource AnimatedIconButton}" />
+
+                    <!--  🔴 録画ボタン  -->
+                    <Button
+                        Command="{Binding ToggleRecordingCommand}"
+                        Content=""
+                        ToolTip="録画">
+
+                        <Button.Style>
+                            <Style BasedOn="{StaticResource AnimatedIconButton}" TargetType="Button">
+                                <Style.Triggers>
+
+                                    <!--  録画中  -->
+                                    <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                                        <Setter Property="Background" Value="#FF4444" />
+                                        <Setter Property="Foreground" Value="White" />
+                                        <Setter Property="ToolTip" Value="録画停止" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                                        <Setter Property="Content" Value="" />
+                                        <!--  ■ 停止アイコン  -->
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+
+                    </Button>
                 </StackPanel>
-
-                <!--  シーク風（ダミー）  -->
-                <Slider
-                    Grid.Column="1"
-                    Margin="10,0"
-                    Value="{Binding ScrollSpeed}" />
-
-                <!--  音量  -->
-                <Button
-                    Grid.Column="2"
-                    Content=""
-                    Style="{StaticResource IconButton}" />
             </Grid>
         </Border>
-
     </Grid>
 </Window>

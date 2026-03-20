@@ -1,18 +1,11 @@
-﻿namespace FindAncestor.Models;
-
-public class DisplaySize
+﻿namespace FindAncestor.Models
 {
-    public string Name { get; set; } = "";
-
-    public int Width { get; set; }
-
-    public int Height { get; set; }
-
-    public double AspectRatio
+    public class DisplaySize
     {
-        get
-        {
-            return (double)Width / Height;
-        }
+        public string Name { get; set; } = "";
+        public int Width { get; set; }
+        public int Height { get; set; }
+
+        public double AspectRatio => (double)Width / Height;
     }
 }

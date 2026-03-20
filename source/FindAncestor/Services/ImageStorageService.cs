@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using FindAncestor.Enum;
@@ -16,7 +17,8 @@ namespace FindAncestor.Services
 
             Directory.CreateDirectory(baseFolder);
 
-            var existingFiles = Directory.GetFiles(baseFolder)
+            var existingFiles = Directory
+                .GetFiles(baseFolder)
                 .Select(f => int.TryParse(Path.GetFileNameWithoutExtension(f), out int n) ? n : 0);
 
             int nextNumber = existingFiles.Any() ? existingFiles.Max() + 1 : 1;
@@ -25,7 +27,7 @@ namespace FindAncestor.Services
             {
                 try
                 {
-                    BitmapImage bitmap = new(new Uri(file));
+                    var bitmap = new BitmapImage(new Uri(file));
 
                     BitmapEncoder encoder =
                         format == ImageSaveFormat.Jpeg
@@ -34,15 +36,17 @@ namespace FindAncestor.Services
 
                     encoder.Frames.Add(BitmapFrame.Create(bitmap));
 
-                    string ext = format == ImageSaveFormat.Jpeg ? "jpg" : "png";
-                    string savePath = Path.Combine(baseFolder, $"{nextNumber}.{ext}");
+                    string extension = format == ImageSaveFormat.Jpeg ? "jpg" : "png";
+                    string savePath = Path.Combine(baseFolder, $"{nextNumber}.{extension}");
 
                     using var fs = new FileStream(savePath, FileMode.Create);
                     encoder.Save(fs);
 
                     nextNumber++;
                 }
-                catch { }
+                catch
+                {
+                }
             }
         }
 
@@ -71,8 +75,8 @@ namespace FindAncestor.Services
                 MessageBoxButton.YesNo) != MessageBoxResult.Yes)
                 return;
 
-            foreach (var f in files)
-                File.Delete(f);
+            foreach (var file in files)
+                File.Delete(file);
 
             MessageBox.Show("削除完了");
         }

@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -10,35 +11,72 @@ namespace FindAncestor.ViewModels
 {
     public partial class ScrollingPreviewViewModel : ObservableObject
     {
-        public ObservableCollection<ImageWithWidth> ScrollImages { get; } = [];
+
+        private double _scrollPosition;
+        private DateTime _lastTime = DateTime.Now;
 
         private MediaPlayer? _mediaPlayer;
-
         private DispatcherTimer? _fadeTimer;
 
-        [ObservableProperty]
-        private double _scrollSpeed;
+        [ObservableProperty] private double _scrollSpeed;
+        [ObservableProperty] private double _imageHeight;
+        [ObservableProperty] private double _aspectRatio;
 
-        [ObservableProperty]
-        private double _imageHeight;
+        public double ScrollPosition
+        {
+            get;
+            set
+            {
+                if (SetProperty(ref field, value))
+                {
+                    // 実際の描画位置に反映する処理
+                    UpdateScrollOffset();
+                }
+            }
+        }
 
-        [ObservableProperty]
-        private double _aspectRatio;
+        private void UpdateScrollOffset()
+        {
+            // TODO: ScrollImages の描画を ScrollPosition に基づいてオフセット
+            // 例: Canvas.Left や ItemsControl ScrollViewer の ScrollToHorizontalOffset など
+        }
 
-        // 横スクロール位置
-        [ObservableProperty]
-        private double _scrollPosition;
+        public ObservableCollection<ImageWithWidth> ScrollImages { get; } = [];
 
-        public ScrollingPreviewViewModel(
-            double imageHeight,
-            double aspectRatio,
-            double scrollSpeed)
+        public ScrollingPreviewViewModel(double imageHeight, double aspectRatio, double scrollSpeed)
         {
             ImageHeight = imageHeight;
             AspectRatio = aspectRatio;
             ScrollSpeed = scrollSpeed;
+        }
 
-            LoadImages(imageHeight, aspectRatio);
+        public void UpdateByTime(double speed)
+        {
+            var now = DateTime.Now;
+            var delta = (now - _lastTime).TotalSeconds;
+            _lastTime = now;
+
+            ScrollPosition += speed * delta * 100; // ← 調整係数
+        }
+        public void StartAudio(string path, bool loop, double fadeSeconds)
+        {
+            if (!File.Exists(path)) return;
+
+            _mediaPlayer ??= new MediaPlayer();
+            _mediaPlayer.Open(new Uri(path));
+            _mediaPlayer.Volume = 0;
+            _mediaPlayer.Play();
+
+            if (loop)
+            {
+                _mediaPlayer.MediaEnded += (s, e) =>
+                {
+                    _mediaPlayer.Position = TimeSpan.Zero;
+                    _mediaPlayer.Play();
+                };
+            }
+
+            StartFade(1.0, fadeSeconds, true);
         }
 
         public void StopAudio(double fadeSeconds)
@@ -60,17 +98,13 @@ namespace FindAncestor.ViewModels
         private void StartFade(double targetVolume, double durationSeconds, bool fadeIn)
         {
             _fadeTimer?.Stop();
-
             if (_mediaPlayer == null) return;
 
             double intervalMs = 50;
             double steps = durationSeconds * 1000 / intervalMs;
             double volumeStep = 1.0 / steps;
 
-            _fadeTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(intervalMs)
-            };
+            _fadeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(intervalMs) };
 
             _fadeTimer.Tick += (s, e) =>
             {
@@ -96,27 +130,16 @@ namespace FindAncestor.ViewModels
             _fadeTimer.Start();
         }
 
-
-
-        public void StartAudio(string path, bool loop, double fadeSeconds)
+        public void UpdateSize(double imageWidth, double aspectRatio)
         {
-            if (!File.Exists(path)) return;
+            AspectRatio = aspectRatio;
+            ImageHeight = imageWidth / aspectRatio;
+            LoadImages(ImageHeight, AspectRatio);
+        }
 
-            _mediaPlayer ??= new MediaPlayer();
-            _mediaPlayer.Open(new Uri(path));
-            _mediaPlayer.Volume = 0;
-            _mediaPlayer.Play();
-
-            if (loop)
-            {
-                _mediaPlayer.MediaEnded += (s, e) =>
-                {
-                    _mediaPlayer.Position = TimeSpan.Zero;
-                    _mediaPlayer.Play();
-                };
-            }
-
-            StartFade(1.0, fadeSeconds, true);
+        public void UpdateScrollSpeed(double speed)
+        {
+            ScrollSpeed = speed;
         }
 
         private void LoadImages(double imageHeight, double aspectRatio)
@@ -125,18 +148,15 @@ namespace FindAncestor.ViewModels
 
             string baseFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Image");
             string[] folders = ["A", "B", "C", "D"];
-
-            // 対応拡張子
             string[] extensions = ["*.png", "*.jpg", "*.jpeg"];
 
-            foreach (var f in folders)
+            foreach (var folder in folders)
             {
-                string folderPath = Path.Combine(baseFolder, f);
+                string folderPath = Path.Combine(baseFolder, folder);
                 if (!Directory.Exists(folderPath)) continue;
 
-                var files = extensions
-                    .SelectMany(ext => Directory.GetFiles(folderPath, ext))
-                    .OrderBy(x => x);
+                var files = extensions.SelectMany(ext =>
+                    Directory.GetFiles(folderPath, ext)).OrderBy(x => x);
 
                 foreach (var file in files)
                 {
@@ -161,32 +181,25 @@ namespace FindAncestor.ViewModels
                     }
                     catch
                     {
-                        // 読み込み失敗は無視
                     }
                 }
             }
 
-            // 無限スクロール用にコピー
-            var count = ScrollImages.Count;
-            for (var i = 0; i < count; i++)
+            int count = ScrollImages.Count;
+            for (int i = 0; i < count; i++)
                 ScrollImages.Add(ScrollImages[i]);
         }
 
-        public void UpdateSize(double imageWidth, double aspectRatio)
+        public void SetVolume(double volume)
         {
-            AspectRatio = aspectRatio;
-            ImageHeight = imageWidth / aspectRatio;
-            LoadImages(ImageHeight, AspectRatio);
-        }
-
-        public void UpdateScrollSpeed(double speed)
-        {
-            ScrollSpeed = speed;
+            if (_mediaPlayer != null)
+                _mediaPlayer.Volume = volume / 100;
         }
 
         public void Dispose()
         {
             StopAudio();
         }
+
     }
 }

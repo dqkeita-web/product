@@ -7,27 +7,21 @@
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
-
     <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
-
         <i:Interaction.Behaviors>
-            <!--  バインディングで速度を MainMenu から連動  -->
             <behaviors:ScrollAnimationBehavior Speed="{Binding ScrollSpeed}" />
         </i:Interaction.Behaviors>
-
         <ItemsControl ItemsSource="{Binding ScrollImages}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <StackPanel Orientation="Horizontal" />
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
-
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Image
                         Width="{Binding Width}"
                         Height="{Binding Height}"
-                        d:DataContext="{d:DesignInstance}"
                         Source="{Binding Source}"
                         Stretch="Fill" />
                 </DataTemplate>

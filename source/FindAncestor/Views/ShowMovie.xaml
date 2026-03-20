@@ -8,12 +8,7 @@
     Width="1280"
     Height="720"
     WindowStartupLocation="CenterScreen">
-
     <Grid>
-        <!--  16:9 の場合 → AspectRatio="1.777778"  -->
-
-        <!--  3:2 の場合 → AspectRatio="1.5"  -->
-
         <local:ScrollingPreviewView AspectRatio="1.333333" ImageHeight="300" />
     </Grid>
 </Window>

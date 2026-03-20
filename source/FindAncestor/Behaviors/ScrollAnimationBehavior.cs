@@ -17,10 +17,6 @@ namespace FindAncestor.Behaviors
                 typeof(ScrollAnimationBehavior),
                 new PropertyMetadata(0.0, OnSpeedChanged));
 
-        /// <summary>
-        /// スクロール速度 (-5～5程度)
-        /// 正: 右方向, 負: 左方向
-        /// </summary>
         public double Speed
         {
             get => (double)GetValue(SpeedProperty);
@@ -31,7 +27,7 @@ namespace FindAncestor.Behaviors
         {
             if (d is ScrollAnimationBehavior behavior)
             {
-                behavior._scrollDelta = behavior.Speed * 0.3; // 1フレームで進むピクセル数
+                behavior._scrollDelta = behavior.Speed * 0.3;
             }
         }
 
@@ -39,7 +35,6 @@ namespace FindAncestor.Behaviors
         {
             base.OnAttached();
             _scrollDelta = Speed * 0.3;
-
             CompositionTarget.Rendering += OnRendering;
         }
 
@@ -55,7 +50,6 @@ namespace FindAncestor.Behaviors
 
             double newOffset = AssociatedObject.HorizontalOffset + _scrollDelta;
 
-            // 無限スクロール処理
             if (newOffset >= AssociatedObject.ScrollableWidth)
                 newOffset -= AssociatedObject.ScrollableWidth;
             else if (newOffset < 0)
