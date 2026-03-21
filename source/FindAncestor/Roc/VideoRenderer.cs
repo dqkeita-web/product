@@ -19,7 +19,6 @@ namespace FindAncestor.Roc
             _height = height;
             _model = model;
 
-            // ★1回だけ生成（超重要）
             _bmp = new RenderTargetBitmap(
                 _width,
                 _height,
@@ -32,30 +31,45 @@ namespace FindAncestor.Roc
         {
             using (var dc = _dv.RenderOpen())
             {
+                // 背景
                 dc.DrawRectangle(Brushes.Black, null, new Rect(0, 0, _width, _height));
 
-                double x = -scrollPos;
+                // 🔥 合計幅
+                double totalWidth = 0;
+                foreach (var w in _model.Widths)
+                    totalWidth += w;
 
-                for (int i = 0; i < _model.Images.Count; i++)
+                if (totalWidth <= 0)
+                    return _bmp;
+
+                // 🔥 ループ（負も対応）
+                double x = -scrollPos % totalWidth;
+                if (x > 0) x -= totalWidth;
+
+                // 🔥 画面埋めるまで描画
+                while (x < _width)
                 {
-                    var img = _model.Images[i];
+                    for (int i = 0; i < _model.Images.Count; i++)
+                    {
+                        var img = _model.Images[i];
+                        double w = _model.Widths[i];
+                        double h = _model.Heights[i];
 
-                    double w = _model.Widths[i];
-                    double h = _model.Heights[i];
+                        dc.DrawImage(img, new Rect(x, 0, w, h));
+                        x += w;
 
-                    dc.DrawImage(img, new Rect(x, 0, w, h));
-
-                    x += w;
-
-                    if (x > _width) break;
+                        if (x > _width)
+                            break;
+                    }
                 }
             }
 
-            // ★再利用（ここが神）
             _bmp.Clear();
             _bmp.Render(_dv);
 
-            return _bmp;
+            var safe = _bmp.Clone();
+            safe.Freeze();
+            return safe;
         }
     }
 }

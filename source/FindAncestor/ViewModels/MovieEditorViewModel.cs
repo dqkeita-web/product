@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.Input;
 using FindAncestor.Enum;
 using FindAncestor.Models;
 using FindAncestor.Roc;
-using FindAncestor.Roc;
 using FindAncestor.Services;
 using FindAncestor.Views;
 using Microsoft.Web.WebView2.Core;
@@ -19,8 +18,35 @@ using System.Windows.Threading;
 
 namespace FindAncestor.ViewModels
 {
+
+
     public partial class MovieEditorViewModel : ObservableObject
     {
+        private bool _isRendering;
+        private const int TARGET_FPS = 60;
+
+        private double _lastRenderTime;
+        private bool _isRecordingInternal;
+        private RecordingEngine _engine = new();
+
+        private int _recordFrameSkip = 0;
+        private const int RECORD_FPS = 30;
+        private const int UI_FPS = 60;
+
+        private WriteableBitmap? _reuseBitmap;
+
+        private RenderTargetBitmap? _rtb;
+        private WriteableBitmap? _wb;
+
+        private double _recordStartTime;
+        private double _currentScrollPos;
+
+        private double _lastSpeed;
+        private double _baseTime;
+        private const int FPS = 60;
+        double frameInterval = 1.0 / 60.0;
+        double nextFrameTime = 0;
+        private VideoRenderer? _renderer;
         private ScrollingPreviewViewModel? _scrollingPreviewViewModel;
         private readonly DispatcherTimer _autoPlayTimer;
         private const double AutoScrollStep = 1.5;
@@ -31,8 +57,25 @@ namespace FindAncestor.ViewModels
         private bool _isRecording;
         private Stopwatch _uiClock = new();
         private double _lastTime;
-        private readonly RecordingEngine _engine = new();
-        public WebView2 ExternalWebView { get; set; }
+
+        private double _recordStartPos;
+        private Stopwatch _playClock = new();
+        private WriteableBitmap? _captureBitmap;
+        public event Action<string>? RecordingCompleted;
+        private WriteableBitmap? _previewBitmap;
+        public WriteableBitmap? PreviewBitmap
+        {
+            get => _previewBitmap;
+            set => SetProperty(ref _previewBitmap, value);
+        }
+
+        private bool _isRenderingHooked;
+        private readonly Stopwatch _recordClock = new();
+
+        private FrameworkElement? _captureTarget;
+        private bool _isRecordingActive;
+        private byte[]? _pixelBuffer;
+    public WebView2 ExternalWebView { get; set; }
         [ObservableProperty] private FolderPanelMode _currentPanelMode = FolderPanelMode.None;
         [ObservableProperty] private ImageFolderType _selectedPlayFolder = ImageFolderType.A;
         [ObservableProperty] private DisplaySize? _selectedDisplaySize;
@@ -54,6 +97,81 @@ namespace FindAncestor.ViewModels
         [ObservableProperty] private double _volume = 0.5;
         [ObservableProperty] private bool _isExternalVideoVisible;
         [ObservableProperty] private SliderPanelMode _currentSliderMode = SliderPanelMode.None;
+        private void StartRenderLoop()
+        {
+            if (_isRendering) return;
+
+            _playClock.Restart();
+            _lastRenderTime = 0;
+
+            CompositionTarget.Rendering += OnRendering;
+            _isRendering = true;
+        }
+        private DispatcherTimer _recordTimer;
+        [RelayCommand]
+        private async Task StopRecording()
+        {
+            if (!_isRecordingInternal) return;
+
+            _isRecordingInternal = false;
+            CompositionTarget.Rendering -= OnRenderingCapture;  // ループ停止
+            await _engine.StopAsync();
+
+            string folder = @"E:\ffmpegMovie";
+            var file = Directory.GetFiles(folder, "*.mp4")
+                .OrderByDescending(f => File.GetLastWriteTime(f))
+                .FirstOrDefault();
+
+            if (file != null)
+                Process.Start(new ProcessStartInfo { FileName = file, UseShellExecute = true });
+        }
+        [RelayCommand]
+        private void StartRecording()
+        {
+            var view = Application.Current.MainWindow as Views.MovieEditorView;
+            if (view == null) return;
+
+            int width = (int)view.RootGrid.ActualWidth / 2 * 2;
+            int height = (int)view.RootGrid.ActualHeight / 2 * 2;
+
+            string folder = @"E:\ffmpegMovie";
+            Directory.CreateDirectory(folder);
+            string path = Path.Combine(folder, $"video_{DateTime.Now:HHmmss}.mp4");
+
+            _engine.Start(path, width, height);
+            _captureTarget = view.RootGrid;
+            _isRecordingInternal = true;
+
+            CompositionTarget.Rendering += OnRenderingCapture; // これで毎フレーム送信
+        }
+        private void OnRenderingCapture(object? sender, EventArgs e)
+        {
+            if (!_isRecordingInternal || _captureTarget == null) return;
+
+            int width = (int)_captureTarget.ActualWidth;
+            int height = (int)_captureTarget.ActualHeight;
+            if (width <= 0 || height <= 0) return;
+
+            width = width / 2 * 2;   // FFmpegは偶数幅推奨
+            height = height / 2 * 2; // FFmpegは偶数高さ推奨
+
+            var rtb = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            rtb.Render(_captureTarget);
+
+            var bmp = new WriteableBitmap(rtb);
+            bmp.Freeze();
+
+            Debug.WriteLine($"FRAME送信 {bmp.PixelWidth}x{bmp.PixelHeight}");
+            _engine.EnqueueFrame(bmp);  // ここで確実にフレーム送信
+        }
+        private void StopRenderLoop()
+        {
+            if (!_isRendering) return;
+
+            CompositionTarget.Rendering -= OnRendering;
+            _isRendering = false;
+        }
+
 
         public ObservableCollection<DisplaySize> DisplaySizes { get; } =
         [
@@ -73,15 +191,21 @@ namespace FindAncestor.ViewModels
 
         public MovieEditorViewModel()
         {
+            _engine.RecordingCompleted += path =>
+            {
+                RecordingCompleted?.Invoke(path);
+            };
+
             if (AspectRatios.Count > 0) SelectedAspectRatio = AspectRatios[0];
+
             _autoPlayTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(16)
             };
             _autoPlayTimer.Tick += AutoPlayTick;
+
             LoadFolderPreviews();
         }
-
         [RelayCommand]
         private void ToggleAddPanel()
         {
@@ -152,6 +276,12 @@ namespace FindAncestor.ViewModels
         [RelayCommand]
         private void CloseApplication()
         {
+            try
+            {
+                _engine.Stop();
+            }
+            catch { }
+
             Application.Current.Shutdown();
         }
 
@@ -391,58 +521,70 @@ namespace FindAncestor.ViewModels
             LoadFolderPreviews();
         }
 
+
+
         private void StartAutoPlay()
         {
-            if (!_autoPlayTimer.IsEnabled) _autoPlayTimer.Start();
+            var vm = _scrollingPreviewViewModel ?? EmbeddedPreviewViewModel;
+            if (vm == null) return;
+
+            _recordStartPos = vm.ScrollPosition;
+
+            _playClock.Restart();
+
+            if (!_autoPlayTimer.IsEnabled)
+                _autoPlayTimer.Start();
         }
+
+
 
         private void StopAutoPlay()
         {
             if (_autoPlayTimer.IsEnabled) _autoPlayTimer.Stop();
         }
 
-        [RelayCommand]
-        private void StartRecording()
-        {
-            CreatePreviewSize(out var w, out var h);
-
-            string folder = @"E:\ffmpegMovie";
-            Directory.CreateDirectory(folder);
-
-            string path = Path.Combine(folder, $"video_{DateTime.Now:HHmmss}.mp4");
-
-            var vm = _scrollingPreviewViewModel ?? EmbeddedPreviewViewModel;
-            if (vm == null) return;
-
-            var model = new ScrollRenderModel();
-
-            foreach (var img in vm.ScrollImages)
-            {
-                if (img.Source is BitmapSource bmp)
-                {
-                    model.Images.Add(bmp);
-                    model.Widths.Add(img.Width);
-                    model.Heights.Add(img.Height);
-                }
-            }
-
-            _engine.Start(path, (int)w, (int)h, model);
-        }
-        [RelayCommand]
-        private void StopRecording()
-        {
-            _engine.Stop();
-        }
+        private Stopwatch _clock = Stopwatch.StartNew();
 
         private void AutoPlayTick(object? sender, EventArgs e)
         {
             var vm = _scrollingPreviewViewModel ?? EmbeddedPreviewViewModel;
-            if (vm == null) return;
+            if (vm == null || _renderer == null) return;
 
-            vm.ScrollPosition += ScrollSpeed;
+            double now = _playClock.Elapsed.TotalSeconds;
 
-            // ★録画（ここだけ）
-            _engine.ProcessFrame(vm);
+            double delta = now - _recordStartTime;
+            _recordStartTime = now;
+
+            _currentScrollPos += ScrollSpeed * delta;
+
+            vm.ScrollPosition = _currentScrollPos;
+
+            var bmp = _renderer.Render(_currentScrollPos);
+            bmp.Freeze();
+
+
+        }
+        private void UpdatePreviewBitmap(BitmapSource src)
+        {
+            if (_previewBitmap == null ||
+                _previewBitmap.PixelWidth != src.PixelWidth ||
+                _previewBitmap.PixelHeight != src.PixelHeight)
+            {
+                _previewBitmap = new WriteableBitmap(src);
+                OnPropertyChanged(nameof(PreviewBitmap));
+                return;
+            }
+
+            _previewBitmap.Lock();
+
+            src.CopyPixels(
+                new Int32Rect(0, 0, src.PixelWidth, src.PixelHeight),
+                _previewBitmap.BackBuffer,
+                _previewBitmap.BackBufferStride * _previewBitmap.PixelHeight,
+                _previewBitmap.BackBufferStride);
+
+            _previewBitmap.AddDirtyRect(new Int32Rect(0, 0, src.PixelWidth, src.PixelHeight));
+            _previewBitmap.Unlock();
         }
         private RenderTargetBitmap CapturePreview()
         {
@@ -451,7 +593,6 @@ namespace FindAncestor.ViewModels
             int width = (int)element.ActualWidth;
             int height = (int)element.ActualHeight;
 
-            // ★偶数化（FFmpeg対策）
             width = width / 2 * 2;
             height = height / 2 * 2;
 
@@ -493,6 +634,29 @@ namespace FindAncestor.ViewModels
         {
             _scrollingPreviewViewModel?.ScrollPosition = value;
             EmbeddedPreviewViewModel?.ScrollPosition = value;
+        }
+        // 🔴 修正⑤：OnRendering内のエラー修正
+        private void OnRendering(object? sender, EventArgs e)
+        {
+            var vm = _scrollingPreviewViewModel ?? EmbeddedPreviewViewModel;
+            if (vm == null || _renderer == null) return;
+
+            double t = _playClock.Elapsed.TotalSeconds;
+
+            double scrollPos = _recordStartPos + ScrollSpeed * t;
+            vm.ScrollPosition = scrollPos;
+
+            var bmp = _renderer.Render(scrollPos);
+            bmp.Freeze();
+
+            // UI表示（従来通り）
+            PreviewBitmap = new WriteableBitmap(bmp);
+
+            // 🔥 最重要：必ず送る（間引き禁止）
+            if (_isRecordingInternal)
+            {
+                _engine.EnqueueFrame(bmp);
+            }
         }
     }
 }

@@ -1,51 +1,83 @@
-﻿namespace FindAncestor.Roc
-{
-    using FindAncestor.ViewModels;
-    using System.Threading;
-    using System.Windows.Media.Imaging;
+﻿using System.Collections.Concurrent;
+using System.Windows.Media.Imaging;
 
+namespace FindAncestor.Roc
+{
     public class RecordingEngine
     {
-        private VideoRenderer? _renderer;
         private readonly FFmpegNvencRecorder _recorder = new();
 
-        private bool _isRecording;
+        private BlockingCollection<BitmapSource> _queue = new(300); // 🔥 戻す
+        private Thread? _thread;
+        private volatile bool _isRecording;
 
-        public void Start(string path, int w, int h, ScrollRenderModel model)
+        private string? _outputPath;
+
+        public event Action<string>? RecordingCompleted;
+
+        public void Start(string path, int w, int h)
         {
-            _renderer = new VideoRenderer(w, h, model);
+            Stop();
+
+            _outputPath = path;
+
+            _queue = new BlockingCollection<BitmapSource>(300); // 🔥 余裕持たせる
 
             _recorder.Start(path, w, h, 60, null);
 
             _isRecording = true;
+
+            _thread = new Thread(EncodeLoop)
+            {
+                IsBackground = true
+            };
+            _thread.Start();
         }
 
-        public void Stop()
+        public void EnqueueFrame(BitmapSource bmp)
+        {
+            if (!_isRecording) return;
+
+            try
+            {
+                // 🔥 BLOCKING（これが超重要）
+                _queue.Add(bmp);
+            }
+            catch { }
+        }
+
+        private void EncodeLoop()
+        {
+            try
+            {
+                foreach (var bmp in _queue.GetConsumingEnumerable())
+                {
+                    _recorder.AddFrameAsync(bmp);
+                }
+            }
+            catch { }
+        }
+
+        public async Task StopAsync()
         {
             if (!_isRecording) return;
 
             _isRecording = false;
 
-            Thread.Sleep(300); // ★重要（ffmpeg flush待ち）
+            try { _queue.CompleteAdding(); } catch { }
 
-            _recorder.Stop();
+            // 🔥 完全排出待ち
+            try { await Task.Run(() => _thread?.Join()); } catch { }
+
+            await _recorder.StopAsync();
+
+            if (_outputPath != null)
+                RecordingCompleted?.Invoke(_outputPath);
         }
 
-        public void ProcessFrame(ScrollingPreviewViewModel vm)
+        public void Stop()
         {
-            if (!_isRecording) return;
-            if (_renderer == null) return;
-
-            // ★UI完全同期
-            double pos = vm.ScrollPosition;
-
-            var bmp = _renderer.Render(pos);
-
-            // ★安全チェック
-            if (bmp == null || bmp.PixelWidth == 0 || bmp.PixelHeight == 0)
-                return;
-
-            _recorder.AddFrame(bmp);
+            StopAsync().GetAwaiter().GetResult();
         }
     }
 }
