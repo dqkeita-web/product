@@ -42,7 +42,8 @@
         <StackPanel
             Margin="20"
             HorizontalAlignment="Right"
-            VerticalAlignment="Center">
+            VerticalAlignment="Center"
+            Visibility="{Binding IsRecordingUiMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
             <StackPanel Background="#66000000">
                 <Button
                     Command="{Binding ToggleAddPanelCommand}"
@@ -254,7 +255,8 @@
                 Margin="20"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
-                Panel.ZIndex="999">
+                Panel.ZIndex="999"
+                Visibility="{Binding IsRecordingUiMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <StackPanel HorizontalAlignment="Right">
                     <!--  スライダー表示エリア  -->
                     <Canvas Width="0" Height="0">
@@ -285,8 +287,8 @@
                             RenderTransformOrigin="0.5,0.5"
                             Visibility="{Binding CurrentSliderMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Speed}">
                             <Slider
-                                Maximum="15"
-                                Minimum="-15"
+                                Maximum="150"
+                                Minimum="-150"
                                 Orientation="Horizontal"
                                 Value="{Binding ScrollSpeed, Mode=TwoWay}" />
                         </Border>

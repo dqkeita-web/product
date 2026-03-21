@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace FindAncestor.Roc
@@ -14,47 +13,19 @@ namespace FindAncestor.Roc
 
         private readonly string ffmpegPath = @"C:\Tools\ffmpeg\bin\ffmpeg.exe";
 
+        // 🔥 追加：バッファ再利用
+        private byte[]? _buffer;
+
         public void Start(string outputPath, int width, int height, int fps, string? audioPath)
         {
             _isStopping = false;
 
             string args =
-                $"-y -f rawvideo -pix_fmt bgra -s {width}x{height} -i - " +
-                $"-r {fps} " +
-                "-c:v libx264 -preset ultrafast -crf 18 " +
+                $"-y -f rawvideo -pix_fmt bgra -s {width}x{height} -r {fps} -i - " +
+                "-c:v h264_nvenc -preset p5 -rc vbr -cq 19 " +
                 "-pix_fmt yuv420p " +
                 $"{outputPath}";
 
-            Debug.WriteLine("FFmpeg Args: " + args);
-            _ffmpeg = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = ffmpegPath,
-                    Arguments = args,
-                    UseShellExecute = false,
-                    RedirectStandardInput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                },
-                EnableRaisingEvents = true
-            };
-
-            // プロセス終了通知
-            _ffmpeg.Exited += (s, e) =>
-            {
-                Debug.WriteLine("FFmpeg exited");
-            };
-
-            // 標準エラーのリアルタイム読み取り
-            _ffmpeg.ErrorDataReceived += (sender, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data))
-                    Debug.WriteLine("[FFmpeg stderr] " + e.Data);
-            };
-
-            _ffmpeg.Start();
-            _ffmpeg.BeginErrorReadLine(); // これが必須
             _ffmpeg = new Process
             {
                 StartInfo = new ProcessStartInfo
@@ -70,42 +41,37 @@ namespace FindAncestor.Roc
 
             _ffmpeg.Start();
 
-            // 🔴 FFmpegログ出力（超重要）
             _ffmpeg.ErrorDataReceived += (s, e) =>
             {
-                if (e.Data != null)
-                    Debug.WriteLine("FFMPEG: " + e.Data);
+                if (!string.IsNullOrEmpty(e.Data))
+                    Debug.WriteLine("FFmpeg: " + e.Data);
             };
             _ffmpeg.BeginErrorReadLine();
         }
 
-        public async Task AddFrameAsync(BitmapSource bmp)
+        public void AddFrame(BitmapSource bmp)
         {
             if (_isStopping || _ffmpeg == null || _ffmpeg.HasExited)
                 return;
 
             try
             {
-                // 🔴 BGRAに強制変換
-                var converted = new FormatConvertedBitmap();
-                converted.BeginInit();
-                converted.Source = bmp;
-                converted.DestinationFormat = PixelFormats.Bgra32;
-                converted.EndInit();
+                int stride = bmp.PixelWidth * 4;
+                int size = stride * bmp.PixelHeight;
 
-                int stride = converted.PixelWidth * 4;
-                byte[] pixels = new byte[stride * converted.PixelHeight];
+                // 🔥 ここが最重要（1回だけ確保）
+                if (_buffer == null || _buffer.Length != size)
+                {
+                    _buffer = new byte[size];
+                }
 
-                converted.CopyPixels(pixels, stride, 0);
+                bmp.CopyPixels(_buffer, stride, 0);
 
-                // 🔴 非同期書き込み（詰まり対策）
-                await _ffmpeg.StandardInput.BaseStream.WriteAsync(pixels, 0, pixels.Length);
-
-                Debug.WriteLine($"Frame written: {pixels.Length} bytes");
+                _ffmpeg.StandardInput.BaseStream.Write(_buffer, 0, size);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("AddFrame ERROR: " + ex.ToString());
+                Debug.WriteLine("AddFrame error: " + ex.Message);
             }
         }
 
@@ -118,23 +84,28 @@ namespace FindAncestor.Roc
             {
                 if (_ffmpeg == null) return;
 
-                Debug.WriteLine("Stopping FFmpeg...");
-
                 await _ffmpeg.StandardInput.BaseStream.FlushAsync();
                 _ffmpeg.StandardInput.Close();
 
                 await Task.Run(() => _ffmpeg.WaitForExit());
-
-                Debug.WriteLine("FFmpeg exited.");
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Stop ERROR: " + ex.ToString());
-            }
+            catch { }
 
             try { _ffmpeg?.Dispose(); } catch { }
 
             _ffmpeg = null;
+        }
+
+        public void WriteRaw(byte[] buffer)
+        {
+            if (_isStopping || _ffmpeg == null || _ffmpeg.HasExited)
+                return;
+
+            try
+            {
+                _ffmpeg.StandardInput.BaseStream.Write(buffer, 0, buffer.Length);
+            }
+            catch { }
         }
     }
 }

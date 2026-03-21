@@ -11,10 +11,15 @@ using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Channels;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using Vortice.Direct3D11;
+using Vortice.DXGI;
 
 namespace FindAncestor.ViewModels
 {
@@ -22,25 +27,60 @@ namespace FindAncestor.ViewModels
 
     public partial class MovieEditorViewModel : ObservableObject
     {
+        private ID3D11Device? _d3dDevice;
+        private int _engineWidth;
+        private int _engineHeight;
+        private ID3D11Texture2D? _renderTexture;
+        private ID3D11Texture2D? _stagingTexture;
+
+        private ID3D11DeviceContext ? _deviceContext;
+        private Image? _previewImageControl;
+        private D3DContext? _d3dContext;
+        private FrameworkElement? _captureTarget;
+        private RecordingEngine _engine = new RecordingEngine();
+        private bool _isRecordingInternal;
+
+        [ObservableProperty] private bool _isRecordingUiMode;
+        [ObservableProperty] private D3DImage? _d3dImage;
+
+        public void InitializeD3D(IntPtr hwnd, int width, int height)
+        {
+            _d3dContext = new D3DContext(hwnd, width, height);
+        }
+
+
+        private D3DContext? _d3d;
+        private DispatcherTimer _renderTimer;
+
+        private WriteableBitmap? _previewBitmap;
+
+
+        private const int UI_FPS = 60;
+        private int _uiFrameSkip = 0;
+        private const int UI_SKIP = 3;
+        private RenderTargetBitmap? _rtbCache; // RenderTargetBitmap 再利用
+        private WriteableBitmap? _previewBitmapCache; // UI表示用
+
         private bool _isRendering;
         private const int TARGET_FPS = 60;
-
         private double _lastRenderTime;
-        private bool _isRecordingInternal;
-        private RecordingEngine _engine = new();
 
         private int _recordFrameSkip = 0;
         private const int RECORD_FPS = 30;
-        private const int UI_FPS = 60;
 
+
+
+        private readonly Channel<WriteableBitmap> _frameQueue = Channel.CreateUnbounded<WriteableBitmap>();
+
+        private CancellationTokenSource? _cts;
         private WriteableBitmap? _reuseBitmap;
 
         private RenderTargetBitmap? _rtb;
         private WriteableBitmap? _wb;
-
+        private WriteableBitmap? _uiBitmap;
         private double _recordStartTime;
         private double _currentScrollPos;
-
+        private double _lastRecordTime;
         private double _lastSpeed;
         private double _baseTime;
         private const int FPS = 60;
@@ -53,29 +93,29 @@ namespace FindAncestor.ViewModels
         private readonly VideoExportService _videoExportService = new();
         private readonly SafeRecordingService _recordingService = new();
         private CoreWebView2Environment? _webViewEnvironment;
-        [ObservableProperty]
-        private bool _isRecording;
+        [ObservableProperty] private bool _isRecording;
         private Stopwatch _uiClock = new();
         private double _lastTime;
-
         private double _recordStartPos;
         private Stopwatch _playClock = new();
         private WriteableBitmap? _captureBitmap;
         public event Action<string>? RecordingCompleted;
-        private WriteableBitmap? _previewBitmap;
+        private bool _isRenderingHooked;
+        private readonly Stopwatch _recordClock = new();
+
+
+        private bool _isRecordingActive;
+        private byte[]? _pixelBuffer;
+
+
         public WriteableBitmap? PreviewBitmap
         {
             get => _previewBitmap;
             set => SetProperty(ref _previewBitmap, value);
         }
 
-        private bool _isRenderingHooked;
-        private readonly Stopwatch _recordClock = new();
 
-        private FrameworkElement? _captureTarget;
-        private bool _isRecordingActive;
-        private byte[]? _pixelBuffer;
-    public WebView2 ExternalWebView { get; set; }
+        public WebView2 ExternalWebView { get; set; }
         [ObservableProperty] private FolderPanelMode _currentPanelMode = FolderPanelMode.None;
         [ObservableProperty] private ImageFolderType _selectedPlayFolder = ImageFolderType.A;
         [ObservableProperty] private DisplaySize? _selectedDisplaySize;
@@ -97,6 +137,7 @@ namespace FindAncestor.ViewModels
         [ObservableProperty] private double _volume = 0.5;
         [ObservableProperty] private bool _isExternalVideoVisible;
         [ObservableProperty] private SliderPanelMode _currentSliderMode = SliderPanelMode.None;
+
         private void StartRenderLoop()
         {
             if (_isRendering) return;
@@ -107,69 +148,147 @@ namespace FindAncestor.ViewModels
             CompositionTarget.Rendering += OnRendering;
             _isRendering = true;
         }
-        private DispatcherTimer _recordTimer;
-        [RelayCommand]
-        private async Task StopRecording()
+        public void InitializeRecordingTarget(FrameworkElement target)
         {
-            if (!_isRecordingInternal) return;
+            _captureTarget = target;
+        }
+        public void InitializeD3DPreview(Image image)
+        {
+            _d3dImage = new D3DImage();
+            image.Source = _d3dImage;
+        }   
+        private DispatcherTimer _recordTimer;
 
+        public async Task StopRecordingAsync()
+        {
+            if (!IsRecording) return;
+
+            CompositionTarget.Rendering -= OnRenderFrame;
+
+            // 🔥 これも必須
             _isRecordingInternal = false;
-            CompositionTarget.Rendering -= OnRenderingCapture;  // ループ停止
+
             await _engine.StopAsync();
 
-            string folder = @"E:\ffmpegMovie";
-            var file = Directory.GetFiles(folder, "*.mp4")
-                .OrderByDescending(f => File.GetLastWriteTime(f))
-                .FirstOrDefault();
+            IsRecording = false;
+            IsRecordingUiMode = false;
 
-            if (file != null)
-                Process.Start(new ProcessStartInfo { FileName = file, UseShellExecute = true });
+            _engineWidth = 0;
+            _engineHeight = 0;
         }
-        [RelayCommand]
-        private void StartRecording()
+        private void OnRenderingCapture(object sender, EventArgs e)
         {
-            var view = Application.Current.MainWindow as Views.MovieEditorView;
-            if (view == null) return;
-
-            int width = (int)view.RootGrid.ActualWidth / 2 * 2;
-            int height = (int)view.RootGrid.ActualHeight / 2 * 2;
-
-            string folder = @"E:\ffmpegMovie";
-            Directory.CreateDirectory(folder);
-            string path = Path.Combine(folder, $"video_{DateTime.Now:HHmmss}.mp4");
-
-            _engine.Start(path, width, height);
-            _captureTarget = view.RootGrid;
-            _isRecordingInternal = true;
-
-            CompositionTarget.Rendering += OnRenderingCapture; // これで毎フレーム送信
-        }
-        private void OnRenderingCapture(object? sender, EventArgs e)
-        {
-            if (!_isRecordingInternal || _captureTarget == null) return;
+            if (!IsRecording) return;
+            if (_captureTarget == null) return;
 
             int width = (int)_captureTarget.ActualWidth;
             int height = (int)_captureTarget.ActualHeight;
-            if (width <= 0 || height <= 0) return;
 
-            width = width / 2 * 2;   // FFmpegは偶数幅推奨
-            height = height / 2 * 2; // FFmpegは偶数高さ推奨
+            if (width <= 0 || height <= 0) return;
 
             var rtb = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
             rtb.Render(_captureTarget);
 
-            var bmp = new WriteableBitmap(rtb);
-            bmp.Freeze();
+            var wb = new WriteableBitmap(rtb);
+            wb.Freeze();
 
-            Debug.WriteLine($"FRAME送信 {bmp.PixelWidth}x{bmp.PixelHeight}");
-            _engine.EnqueueFrame(bmp);  // ここで確実にフレーム送信
+            _engine.EnqueueFrame(wb);
+
+            Debug.WriteLine($"FRAME送信 {width}x{height}");
         }
+        private async Task ProcessFrameQueueAsync(CancellationToken token)
+        {
+            try
+            {
+                await foreach (var frame in _frameQueue.Reader.ReadAllAsync(token))
+                {
+                    _engine.EnqueueFrame(frame);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // 正常終了
+            }
+        }
+
+
+        public void StartRecording(FrameworkElement captureTarget, string path, int width, int height)
+        {
+            if (IsRecording) return;
+
+            _captureTarget = captureTarget;
+
+            _engineWidth = width;
+            _engineHeight = height;
+
+            IsRecording = true;
+            IsRecordingUiMode = true;
+
+            // 🔥 これが抜けてる（致命的）
+            _isRecordingInternal = true;
+
+            _engine.Start(path, width, height);
+
+            CompositionTarget.Rendering += OnRenderFrame;
+        }
+
+
         private void StopRenderLoop()
         {
             if (!_isRendering) return;
 
             CompositionTarget.Rendering -= OnRendering;
             _isRendering = false;
+        }
+
+        private void OnRenderFrame(object? sender, EventArgs e)
+        {
+            if (!_isRecordingInternal || _captureTarget == null) return;
+
+            int width = _engineWidth;   // Start時の値と一致させる
+            int height = _engineHeight;
+            if (width <= 0 || height <= 0) return;
+
+            width = width / 2 * 2;
+            height = height / 2 * 2;
+
+            // 🔥 再利用
+            if (_rtb == null ||
+                _rtb.PixelWidth != width ||
+                _rtb.PixelHeight != height)
+            {
+                _rtb = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            }
+
+            var dv = new DrawingVisual();
+
+            using (var dc = dv.RenderOpen())
+            {
+                // 🔥 ズレ修正（最重要）
+                var vb = new VisualBrush(_captureTarget)
+                {
+                    Stretch = Stretch.Fill,
+                    AlignmentX = AlignmentX.Left,
+                    AlignmentY = AlignmentY.Top
+                };
+
+                dc.DrawRectangle(vb, null, new Rect(0, 0, width, height));
+            }
+
+            _rtb.Clear();
+            _rtb.Render(dv);
+
+            var wb = new WriteableBitmap(_rtb);
+            wb.Freeze();
+
+            _engine.EnqueueFrame(wb);
+
+            _uiFrameSkip++;
+            if (_uiFrameSkip >= UI_SKIP)
+            {
+                _uiFrameSkip = 0;
+                PreviewBitmap = wb;
+            }
         }
 
 
@@ -191,10 +310,7 @@ namespace FindAncestor.ViewModels
 
         public MovieEditorViewModel()
         {
-            _engine.RecordingCompleted += path =>
-            {
-                RecordingCompleted?.Invoke(path);
-            };
+            _engine.RecordingCompleted += path => { RecordingCompleted?.Invoke(path); };
 
             if (AspectRatios.Count > 0) SelectedAspectRatio = AspectRatios[0];
 
@@ -206,6 +322,7 @@ namespace FindAncestor.ViewModels
 
             LoadFolderPreviews();
         }
+
         [RelayCommand]
         private void ToggleAddPanel()
         {
@@ -280,7 +397,9 @@ namespace FindAncestor.ViewModels
             {
                 _engine.Stop();
             }
-            catch { }
+            catch
+            {
+            }
 
             Application.Current.Shutdown();
         }
@@ -367,6 +486,25 @@ namespace FindAncestor.ViewModels
             CurrentAudioIndex = (CurrentAudioIndex + 1) % AudioFiles.Count;
             StartAudioInternal();
         }
+        private void CreateStagingTexture(int width, int height)
+        {
+            if (_d3dDevice == null) return;
+
+            var desc = new Texture2DDescription
+            {
+                Width = (uint)width,
+                Height = (uint)height,
+                MipLevels = 1,
+                ArraySize = 1,
+                Format = Format.B8G8R8A8_UNorm,
+                SampleDescription = new SampleDescription(1, 0),
+                Usage = ResourceUsage.Staging,
+                BindFlags = BindFlags.None
+            };
+
+            _stagingTexture = _d3dDevice.CreateTexture2D(desc);
+        }
+
 
         [RelayCommand]
         private void PreviousAudio()
@@ -564,6 +702,9 @@ namespace FindAncestor.ViewModels
 
 
         }
+
+        private WriteableBitmap? _recordWb;
+
         private void UpdatePreviewBitmap(BitmapSource src)
         {
             if (_previewBitmap == null ||
@@ -586,48 +727,50 @@ namespace FindAncestor.ViewModels
             _previewBitmap.AddDirtyRect(new Int32Rect(0, 0, src.PixelWidth, src.PixelHeight));
             _previewBitmap.Unlock();
         }
-        private RenderTargetBitmap CapturePreview()
-        {
-            var element = Application.Current.MainWindow;
 
-            int width = (int)element.ActualWidth;
-            int height = (int)element.ActualHeight;
+        private RenderTargetBitmap? _recordRtb;
 
-            width = width / 2 * 2;
-            height = height / 2 * 2;
 
-            var rtb = new RenderTargetBitmap(
-                width,
-                height,
-                96,
-                96,
-                PixelFormats.Pbgra32);
-
-            rtb.Render(element);
-
-            return rtb;
-        }
         public void ApplyImageWidth()
         {
             UpdatePreviewSize(ImageWidth, SelectedAspectRatio.Value);
             LoadImagesFromFolder(SelectedPlayFolder);
         }
 
-
         [RelayCommand]
-        private void ToggleRecording()
+        private async Task ToggleRecording()
         {
             if (IsRecording)
             {
-                StopRecording();
-                IsRecording = false;
+                await StopRecordingAsync();
             }
             else
             {
-                StartRecording();
-                IsRecording = true;
+                StartRecordingInternal();
             }
         }
+
+        private void StartRecordingInternal()
+        {
+            // MainWindow から RootGrid を取得
+            var view = Application.Current.MainWindow as Views.MovieEditorView;
+            if (view == null) return;
+
+            var captureTarget = view.RootGrid;
+
+            // 幅・高さを偶数に丸める
+            int width = (int)captureTarget.ActualWidth / 2 * 2;
+            int height = (int)captureTarget.ActualHeight / 2 * 2;
+
+            string folder = @"E:\ffmpegMovie";
+            Directory.CreateDirectory(folder);
+
+            string path = Path.Combine(folder, $"video_{DateTime.Now:HHmmss}.mp4");
+
+            // 本来の録画開始処理
+            StartRecording(captureTarget, path, width, height);
+        }
+
         [ObservableProperty] private double _scrollPosition;
 
         partial void OnScrollPositionChanged(double value)
@@ -635,7 +778,7 @@ namespace FindAncestor.ViewModels
             _scrollingPreviewViewModel?.ScrollPosition = value;
             EmbeddedPreviewViewModel?.ScrollPosition = value;
         }
-        // 🔴 修正⑤：OnRendering内のエラー修正
+
         private void OnRendering(object? sender, EventArgs e)
         {
             var vm = _scrollingPreviewViewModel ?? EmbeddedPreviewViewModel;
@@ -649,14 +792,44 @@ namespace FindAncestor.ViewModels
             var bmp = _renderer.Render(scrollPos);
             bmp.Freeze();
 
-            // UI表示（従来通り）
-            PreviewBitmap = new WriteableBitmap(bmp);
 
-            // 🔥 最重要：必ず送る（間引き禁止）
+            _uiFrameSkip++;
+            if (_uiFrameSkip >= UI_SKIP)
+            {
+                _uiFrameSkip = 0;
+
+                if (_previewBitmapCache == null ||
+                    _previewBitmapCache.PixelWidth != bmp.PixelWidth ||
+                    _previewBitmapCache.PixelHeight != bmp.PixelHeight)
+                {
+                    _previewBitmapCache = new WriteableBitmap(bmp);
+                    PreviewBitmap = _previewBitmapCache;
+                }
+                else
+                {
+                    _previewBitmapCache.Lock();
+
+                    bmp.CopyPixels(
+                        new Int32Rect(0, 0, bmp.PixelWidth, bmp.PixelHeight),
+                        _previewBitmapCache.BackBuffer,
+                        _previewBitmapCache.BackBufferStride * bmp.PixelHeight,
+                        _previewBitmapCache.BackBufferStride);
+
+                    _previewBitmapCache.AddDirtyRect(
+                        new Int32Rect(0, 0, bmp.PixelWidth, bmp.PixelHeight));
+
+                    _previewBitmapCache.Unlock();
+                }
+            }
+
             if (_isRecordingInternal)
             {
                 _engine.EnqueueFrame(bmp);
             }
+
+
         }
+
     }
 }
+

@@ -1,27 +1,34 @@
-﻿using System.Collections.Concurrent;
-using System.Windows.Media.Imaging;
-
-namespace FindAncestor.Roc
+﻿namespace FindAncestor.Roc
 {
+    using System.Collections.Concurrent;
+    using System.Windows.Media.Imaging;
+
     public class RecordingEngine
     {
         private readonly FFmpegNvencRecorder _recorder = new();
 
-        private BlockingCollection<BitmapSource> _queue = new(300); // 🔥 戻す
+        private BlockingCollection<byte[]> _queue = new(300);
         private Thread? _thread;
         private volatile bool _isRecording;
 
-        private string? _outputPath;
+        private int _width;
+        private int _height;
+        private int _frameSize;
 
         public event Action<string>? RecordingCompleted;
+        private string? _outputPath;
 
         public void Start(string path, int w, int h)
         {
             Stop();
 
+            _width = w;
+            _height = h;
+            _frameSize = w * h * 4;
+
             _outputPath = path;
 
-            _queue = new BlockingCollection<BitmapSource>(300); // 🔥 余裕持たせる
+            _queue = new BlockingCollection<byte[]>(300);
 
             _recorder.Start(path, w, h, 60, null);
 
@@ -40,8 +47,14 @@ namespace FindAncestor.Roc
 
             try
             {
-                // 🔥 BLOCKING（これが超重要）
-                _queue.Add(bmp);
+                int stride = _width * 4;
+
+                var buffer = new byte[_frameSize];
+
+                // 🔥 stride固定でコピー（超重要）
+                bmp.CopyPixels(buffer, stride, 0);
+
+                _queue.Add(buffer);
             }
             catch { }
         }
@@ -50,9 +63,9 @@ namespace FindAncestor.Roc
         {
             try
             {
-                foreach (var bmp in _queue.GetConsumingEnumerable())
+                foreach (var buffer in _queue.GetConsumingEnumerable())
                 {
-                    _recorder.AddFrameAsync(bmp);
+                    _recorder.WriteRaw(buffer);
                 }
             }
             catch { }
@@ -64,10 +77,9 @@ namespace FindAncestor.Roc
 
             _isRecording = false;
 
-            try { _queue.CompleteAdding(); } catch { }
+            _queue.CompleteAdding();
 
-            // 🔥 完全排出待ち
-            try { await Task.Run(() => _thread?.Join()); } catch { }
+            await Task.Run(() => _thread?.Join());
 
             await _recorder.StopAsync();
 

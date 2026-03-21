@@ -5,7 +5,7 @@
     xmlns:global="clr-namespace:FindAncestor.ViewModels"
     StartupUri="/Views/MovieEditorView.xaml">
     <Application.Resources>
-
+        <global:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <global:PanelModeToVisibilityConverter x:Key="PanelModeToVisibilityConverter" />
 

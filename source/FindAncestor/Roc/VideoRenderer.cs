@@ -11,6 +11,8 @@ namespace FindAncestor.Roc
         private readonly ScrollRenderModel _model;
 
         private readonly DrawingVisual _dv = new();
+
+        // 🔥 再利用する
         private readonly RenderTargetBitmap _bmp;
 
         public VideoRenderer(int width, int height, ScrollRenderModel model)
@@ -32,9 +34,9 @@ namespace FindAncestor.Roc
             using (var dc = _dv.RenderOpen())
             {
                 // 背景
-                dc.DrawRectangle(Brushes.Black, null, new Rect(0, 0, _width, _height));
+                dc.DrawRectangle(Brushes.Black, null,
+                    new Rect(0, 0, _width, _height));
 
-                // 🔥 合計幅
                 double totalWidth = 0;
                 foreach (var w in _model.Widths)
                     totalWidth += w;
@@ -42,11 +44,9 @@ namespace FindAncestor.Roc
                 if (totalWidth <= 0)
                     return _bmp;
 
-                // 🔥 ループ（負も対応）
                 double x = -scrollPos % totalWidth;
                 if (x > 0) x -= totalWidth;
 
-                // 🔥 画面埋めるまで描画
                 while (x < _width)
                 {
                     for (int i = 0; i < _model.Images.Count; i++)
@@ -56,20 +56,21 @@ namespace FindAncestor.Roc
                         double h = _model.Heights[i];
 
                         dc.DrawImage(img, new Rect(x, 0, w, h));
-                        x += w;
 
-                        if (x > _width)
-                            break;
+                        x += w;
+                        if (x > _width) break;
                     }
                 }
             }
 
+            // 🔥 ここが最重要（再利用）
             _bmp.Clear();
             _bmp.Render(_dv);
 
-            var safe = _bmp.Clone();
-            safe.Freeze();
-            return safe;
+            // ❌ Cloneしない（GC原因）
+            // ❌ newしない
+
+            return _bmp;
         }
     }
 }
