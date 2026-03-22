@@ -384,8 +384,73 @@
                         </Button.Style>
 
                     </Button>
+                    <!-- 範囲選択 -->
+                    <!-- 範囲選択ボタン -->
+                    <Button Command="{Binding StartRegionSelectCommand}"
+                            Content="□"
+                            ToolTip="範囲選択"
+                            Style="{StaticResource AnimatedIconButton}" />
+
+                    <!-- 録画開始ボタン -->
+                    <Button Command="{Binding ToggleWinRocRecordingCommand}"
+                            Content=""
+                            ToolTip="録画開始（範囲）">
+                        <Button.Style>
+                            <Style BasedOn="{StaticResource AnimatedIconButton}" TargetType="Button">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsWinRocRecording}" Value="True">
+                                        <Setter Property="Background" Value="#FF4444"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="Content" Value=""/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
+        <Canvas x:Name="SelectionOverlay"
+                Panel.ZIndex="9999"
+                Background="#66000000"
+                Visibility="Collapsed"
+                IsHitTestVisible="False"
+                MouseLeftButtonDown="Overlay_MouseDown"
+                MouseMove="Overlay_MouseMove"
+                MouseLeftButtonUp="Overlay_MouseUp">
+
+            <Rectangle x:Name="SelectionRect"
+                       Stroke="White"
+                       StrokeThickness="2"
+                       Fill="#33FFFFFF"
+                       Visibility="Collapsed"/>
+
+            <Path x:Name="OverlayPath"
+                  Fill="#AA000000"/>
+        </Canvas>
+
+        <Canvas x:Name="RecordingBorderOverlay"
+                Panel.ZIndex="99999"
+                Background="Transparent"
+                Visibility="Collapsed"
+                IsHitTestVisible="False">
+
+            <Rectangle x:Name="RecordingBorder"
+                       Fill="Transparent"
+                       Stroke="#FF4444"
+                       StrokeThickness="3"
+                       Visibility="Collapsed"/>
+        </Canvas>
+        <TextBlock x:Name="RecIndicator"
+                   Text="● REC"
+                   Foreground="Red"
+                   FontSize="24"
+                   FontWeight="Bold"
+                   Visibility="Collapsed"
+                   Panel.ZIndex="10000"
+                   Margin="20"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Top"/>
     </Grid>
+
 </Window>
