@@ -14,6 +14,7 @@
         MouseRightButtonDown="RootGrid_MouseRightButtonDown"
         MouseRightButtonUp="RootGrid_MouseRightButtonUp">
         <views:ScrollingPreviewView DataContext="{Binding EmbeddedPreviewViewModel}">
+            <!-- 🔥 Overlay表示 -->
             <b:Interaction.Triggers>
                 <b:EventTrigger EventName="MouseMove">
                     <b:InvokeCommandAction Command="{Binding ShowUICommand}" />
@@ -23,6 +24,10 @@
                 </b:EventTrigger>
             </b:Interaction.Triggers>
         </views:ScrollingPreviewView>
+        <Canvas x:Name="OverlayCanvas"
+                IsHitTestVisible="False"
+                Panel.ZIndex="5000"/>
+
         <Border Background="#AA000000" Visibility="{Binding IsEmbeddedMode, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Grid>
                 <views:ScrollingPreviewView
@@ -384,73 +389,85 @@
                         </Button.Style>
 
                     </Button>
-                    <!-- 範囲選択 -->
-                    <!-- 範囲選択ボタン -->
-                    <Button Command="{Binding StartRegionSelectCommand}"
-                            Content="□"
-                            ToolTip="範囲選択"
-                            Style="{StaticResource AnimatedIconButton}" />
 
-                    <!-- 録画開始ボタン -->
-                    <Button Command="{Binding ToggleWinRocRecordingCommand}"
-                            Content=""
-                            ToolTip="録画開始（範囲）">
+                    <!--  範囲選択  -->
+                    <!--  範囲選択ボタン  -->
+                    <Button
+                        Command="{Binding StartRegionSelectCommand}"
+                        Content="□"
+                        Style="{StaticResource AnimatedIconButton}"
+                        ToolTip="範囲選択" />
+
+                    <!--  録画開始ボタン  -->
+                    <Button
+                        Command="{Binding ToggleWinRocRecordingCommand}"
+                        Content=""
+                        ToolTip="録画開始（範囲）">
                         <Button.Style>
                             <Style BasedOn="{StaticResource AnimatedIconButton}" TargetType="Button">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsWinRocRecording}" Value="True">
-                                        <Setter Property="Background" Value="#FF4444"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                        <Setter Property="Content" Value=""/>
+                                        <Setter Property="Background" Value="#FF4444" />
+                                        <Setter Property="Foreground" Value="White" />
+                                        <Setter Property="Content" Value="" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Button.Style>
                     </Button>
+                    <Button
+                        Command="{Binding OpenEditorCommand}"
+                        Content=""
+                        Style="{StaticResource AnimatedIconButton}"
+                        ToolTip="オーバーレイ編集" />
                 </StackPanel>
             </Grid>
         </Border>
-        <Canvas x:Name="SelectionOverlay"
-                Panel.ZIndex="9999"
-                Background="#66000000"
-                Visibility="Collapsed"
-                IsHitTestVisible="False"
-                MouseLeftButtonDown="Overlay_MouseDown"
-                MouseMove="Overlay_MouseMove"
-                MouseLeftButtonUp="Overlay_MouseUp">
+        <Canvas
+            x:Name="SelectionOverlay"
+            Panel.ZIndex="9999"
+            Background="#66000000"
+            IsHitTestVisible="False"
+            MouseLeftButtonDown="Overlay_MouseDown"
+            MouseLeftButtonUp="Overlay_MouseUp"
+            MouseMove="Overlay_MouseMove"
+            Visibility="Collapsed">
 
-            <Rectangle x:Name="SelectionRect"
-                       Stroke="White"
-                       StrokeThickness="2"
-                       Fill="#33FFFFFF"
-                       Visibility="Collapsed"/>
+            <Rectangle
+                x:Name="SelectionRect"
+                Fill="#33FFFFFF"
+                Stroke="White"
+                StrokeThickness="2"
+                Visibility="Collapsed" />
 
-            <Path x:Name="OverlayPath"
-                  Fill="#AA000000"/>
+            <Path x:Name="OverlayPath" Fill="#AA000000" />
         </Canvas>
 
-        <Canvas x:Name="RecordingBorderOverlay"
-                Panel.ZIndex="99999"
-                Background="Transparent"
-                Visibility="Collapsed"
-                IsHitTestVisible="False">
+        <Canvas
+            x:Name="RecordingBorderOverlay"
+            Panel.ZIndex="99999"
+            Background="Transparent"
+            IsHitTestVisible="False"
+            Visibility="Collapsed">
 
-            <Rectangle x:Name="RecordingBorder"
-                       Fill="Transparent"
-                       Stroke="#FF4444"
-                       StrokeThickness="3"
-                       Visibility="Collapsed"/>
+            <Rectangle
+                x:Name="RecordingBorder"
+                Fill="Transparent"
+                Stroke="#FF4444"
+                StrokeThickness="3"
+                Visibility="Collapsed" />
         </Canvas>
-        <TextBlock x:Name="RecIndicator"
-                   Text="● REC"
-                   Foreground="Red"
-                   FontSize="24"
-                   FontWeight="Bold"
-                   Visibility="Collapsed"
-                   Panel.ZIndex="10000"
-                   Margin="20"
-                   HorizontalAlignment="Left"
-                   VerticalAlignment="Top"/>
+        <TextBlock
+            x:Name="RecIndicator"
+            Margin="20"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Panel.ZIndex="10000"
+            FontSize="24"
+            FontWeight="Bold"
+            Foreground="Red"
+            Text="● REC"
+            Visibility="Collapsed" />
     </Grid>
 
 </Window>

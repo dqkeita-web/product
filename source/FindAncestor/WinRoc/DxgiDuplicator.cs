@@ -1,4 +1,6 @@
-﻿using Vortice.Direct3D11;
+﻿using System;
+using FindAncestor.ErrorDialog;
+using Vortice.Direct3D11;
 using Vortice.DXGI;
 
 namespace FindAncestor.WinRoc
@@ -8,13 +10,20 @@ namespace FindAncestor.WinRoc
         private ID3D11Device _device;
         private ID3D11DeviceContext _context;
         private IDXGIOutputDuplication _duplication;
-
         private ID3D11Texture2D? _staging;
 
         public DxgiDuplicator()
         {
-            DxgiHelper.CreateDevice(out _device, out _context);
-            _duplication = DxgiHelper.CreateDuplication(_device);
+            try
+            {
+                DxgiHelper.CreateDevice(out _device, out _context);
+                _duplication = DxgiHelper.CreateDuplication(_device);
+            }
+            catch (Exception ex)
+            {
+                ErrorDialogHelper.Show("❌ Dxgi初期化失敗\n" + ex);
+                throw;
+            }
         }
 
         public DxgiFrame? Capture(WinRocRegion region)
@@ -22,9 +31,12 @@ namespace FindAncestor.WinRoc
             try
             {
                 var result = _duplication.AcquireNextFrame(100, out var _, out var resource);
-                if (result.Failure) return null;
+
+                if (result.Failure)
+                    return null;
 
                 using var tex = resource.QueryInterface<ID3D11Texture2D>();
+
                 var desc = tex.Description;
 
                 if (_staging == null)
@@ -69,18 +81,26 @@ namespace FindAncestor.WinRoc
                     Stride = stride
                 };
             }
-            catch
+            catch (Exception ex)
             {
+                ErrorDialogHelper.Show("❌ Capture例外\n" + ex.Message);
                 return null;
             }
         }
 
         public void Dispose()
         {
-            _staging?.Dispose();
-            _duplication.Dispose();
-            _context.Dispose();
-            _device.Dispose();
+            try
+            {
+                _staging?.Dispose();
+                _duplication.Dispose();
+                _context.Dispose();
+                _device.Dispose();
+            }
+            catch (Exception ex)
+            {
+                ErrorDialogHelper.Show("❌ Dispose例外\n" + ex.Message);
+            }
         }
     }
 }

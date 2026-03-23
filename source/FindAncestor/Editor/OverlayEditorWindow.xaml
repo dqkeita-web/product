@@ -1,0 +1,70 @@
+﻿<Window x:Class="FindAncestor.Editor.OverlayEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Overlay Editor"
+        Width="400" Height="600"
+        Background="#222">
+
+    <ScrollViewer>
+        <StackPanel Margin="10">
+
+            <!-- グループ一覧 -->
+            <ItemsControl ItemsSource="{Binding Groups}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+
+                        <Border Background="#333" Padding="8" Margin="0,0,0,10">
+                            <StackPanel>
+
+                                <!-- グループヘッダ -->
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding IsVisible}" Margin="0,0,6,0"/>
+                                    <TextBlock Text="{Binding Name}" Foreground="White"/>
+                                    <Button Content="+"
+                                            Margin="10,0,0,0"
+                                            Click="AddItem_Click"/>
+                                </StackPanel>
+
+                                <!-- 色選択 -->
+                                <WrapPanel Margin="0,5">
+                                    <Button Background="White" Width="20" Height="20" Click="Color_Click"/>
+                                    <Button Background="Red" Width="20" Height="20" Click="Color_Click"/>
+                                    <Button Background="Blue" Width="20" Height="20" Click="Color_Click"/>
+                                    <Button Background="Green" Width="20" Height="20" Click="Color_Click"/>
+                                    <Button Background="Yellow" Width="20" Height="20" Click="Color_Click"/>
+                                    <Button Background="Pink" Width="20" Height="20" Click="Color_Click"/>
+                                    <Button Background="Cyan" Width="20" Height="20" Click="Color_Click"/>
+                                    <Button Background="Orange" Width="20" Height="20" Click="Color_Click"/>
+                                    <Button Background="Purple" Width="20" Height="20" Click="Color_Click"/>
+                                    <Button Background="Black" Width="20" Height="20" Click="Color_Click"/>
+                                </WrapPanel>
+
+                                <!-- テキスト行 -->
+                                <ItemsControl ItemsSource="{Binding Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+
+                                                <TextBox Width="200"
+                                                         Text="{Binding Text, Mode=TwoWay}"/>
+
+                                                <Button Content="×"
+                                                        Margin="4,0,0,0"
+                                                        Click="RemoveItem_Click"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                            </StackPanel>
+                        </Border>
+
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Button Content="グループ追加" Click="AddGroup_Click"/>
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>

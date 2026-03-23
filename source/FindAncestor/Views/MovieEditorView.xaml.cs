@@ -1,4 +1,6 @@
-﻿using FindAncestor.ViewModels;
+﻿using FindAncestor.Editor;
+using FindAncestor.ErrorDialog;
+using FindAncestor.ViewModels;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -7,13 +9,15 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
 namespace FindAncestor.Views
 {
     public partial class MovieEditorView : Window
     {
-
+        private OverlayItem? _dragItem;
+        private Point _dragOffset;
         private bool _isRightDragging = false;
         private Point _mouseStartScreen;
         private Point _windowStart;
@@ -57,6 +61,7 @@ namespace FindAncestor.Views
 
         private void Overlay_MouseDown(object sender, MouseButtonEventArgs e)
         {
+
             _isSelecting = true;
 
             _start = e.GetPosition(SelectionOverlay);
@@ -121,6 +126,14 @@ namespace FindAncestor.Views
 
             // 🔥 ここでイベント購読
             vm.RecordingCompleted += OnRecordingCompleted;
+
+            var overlayTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(33)
+            };
+
+            overlayTimer.Tick += (s, e) => RenderOverlayUi();
+            overlayTimer.Start();
         }
         public void PlayLatestVideo()
         {
@@ -171,13 +184,13 @@ namespace FindAncestor.Views
                         UseShellExecute = true
                     });
                 }
-                catch
+                catch (Exception ex)
                 {
                     Debug.WriteLine("動画再生失敗: " + path);
+                    ErrorDialogService.Show(ex);
                 }
             });
         }
-
         private void OnSizeSliderReleased(object sender, MouseButtonEventArgs e)
         {
             if (DataContext is MovieEditorViewModel vm)
@@ -279,6 +292,90 @@ namespace FindAncestor.Views
             RecIndicator.Visibility = Visibility.Collapsed;
         }
 
+        private void RenderOverlayUi()
+        {
+            try
+            {
+                if (DataContext is not MovieEditorViewModel vm) return;
+                if (vm.EditorVM == null) return;
 
+                OverlayCanvas.Children.Clear();
+
+                double currentTime = vm.CurrentTime;
+
+                OverlayCanvas.Children.Clear();
+
+                foreach (var group in vm.EditorVM.Groups)
+                {
+                    if (!group.IsVisible) continue;
+
+                    foreach (var item in group.Items)
+                    {
+                        if (vm.CurrentTime < item.Start || vm.CurrentTime > item.End)
+                            continue;
+
+                        var tb = new TextBlock
+                        {
+                            Text = item.Text,
+                            FontSize = item.FontSize,
+                            Foreground = Brushes.White,
+                            Tag = item
+                        };
+
+                        tb.MouseLeftButtonDown += OverlayItem_MouseDown;
+                        tb.MouseMove += OverlayItem_MouseMove;
+                        tb.MouseLeftButtonUp += OverlayItem_MouseUp;
+
+                        Canvas.SetLeft(tb, item.X);
+                        Canvas.SetTop(tb, item.Y);
+
+                        OverlayCanvas.Children.Add(tb);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorDialogService.Show("Overlay UIの描画に失敗: " + ex);
+            }
+        }
+
+        private Point _dragStart;
+
+        private void OverlayItem_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.Tag is OverlayItem item)
+            {
+                _dragItem = item;
+                _dragStart = e.GetPosition(OverlayCanvas);
+
+                fe.CaptureMouse();
+            }
+        }
+
+        private void OverlayItem_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (_dragItem == null) return;
+            if (e.LeftButton != MouseButtonState.Pressed) return;
+
+            var pos = e.GetPosition(OverlayCanvas);
+
+            double dx = pos.X - _dragStart.X;
+            double dy = pos.Y - _dragStart.Y;
+
+            _dragItem.X += dx;
+            _dragItem.Y += dy;
+
+            _dragStart = pos;
+        }
+
+        private void OverlayItem_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement fe)
+            {
+                fe.ReleaseMouseCapture();
+            }
+
+            _dragItem = null;
+        }
     }
 }

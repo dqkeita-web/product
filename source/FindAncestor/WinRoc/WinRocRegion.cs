@@ -7,6 +7,10 @@
         public int Width;
         public int Height;
 
-        public bool IsValid => Width > 0 && Height > 0;
+        public bool IsValid =>
+            Width > 0 &&
+            Height > 0 &&
+            X >= 0 &&
+            Y >= 0;
     }
 }

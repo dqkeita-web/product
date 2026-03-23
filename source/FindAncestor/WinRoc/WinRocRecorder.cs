@@ -1,5 +1,9 @@
 ﻿using FindAncestor.Roc;
+using FindAncestor.ErrorDialog;
+using System;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -24,11 +28,50 @@ namespace FindAncestor.WinRoc
         // =========================
         public Task StartRecordingAsync(string path, WinRocRegion region)
         {
-            _region = region;
+            // 🔴 領域チェック
+            if (!region.IsValid || region.Width <= 0 || region.Height <= 0)
+            {
+                ErrorDialogHelper.Show($"❌ 録画領域が不正\nW:{region.Width} H:{region.Height}");
+                return Task.CompletedTask;
+            }
 
-            _engine.Start(path, region.Width, region.Height);
+            // 🔴 偶数補正（超重要）
+            int width = region.Width / 2 * 2;
+            int height = region.Height / 2 * 2;
 
-            _duplicator = new DxgiDuplicator();
+            if (width <= 0 || height <= 0)
+            {
+                ErrorDialogHelper.Show($"❌ 偶数補正後サイズが0\nW:{width} H:{height}");
+                return Task.CompletedTask;
+            }
+
+            _region = new WinRocRegion
+            {
+                X = region.X,
+                Y = region.Y,
+                Width = width,
+                Height = height
+            };
+
+            try
+            {
+                _engine.Start(path, width, height);
+            }
+            catch (Exception ex)
+            {
+                ErrorDialogHelper.Show("❌ RecordingEngine.Start失敗\n" + ex.Message);
+                return Task.CompletedTask;
+            }
+
+            try
+            {
+                _duplicator = new DxgiDuplicator();
+            }
+            catch (Exception ex)
+            {
+                ErrorDialogHelper.Show("❌ DxgiDuplicator初期化失敗\n" + ex.Message);
+                return Task.CompletedTask;
+            }
 
             _state.IsRecording = true;
             _state.IsStopping = false;
@@ -47,29 +90,67 @@ namespace FindAncestor.WinRoc
         // =========================
         private void CaptureLoop()
         {
+            int failCount = 0;
+
             while (_state.IsRecording && !_state.IsStopping)
             {
-                var frame = _duplicator?.Capture(_region); // ← これが正しい
-                if (frame == null) continue;
+                DxgiFrame? frame = null;
 
                 try
                 {
-                    _engine.EnqueueFrame(
-                        BitmapSource.Create(
-                            frame.Width,
-                            frame.Height,
-                            96, 96,
-                            PixelFormats.Bgra32,
-                            null,
-                            frame.Buffer,
-                            frame.Stride));
+                    frame = _duplicator?.Capture(_region);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    ErrorDialogHelper.Show("❌ Capture例外\n" + ex.Message);
                     break;
                 }
+
+                if (frame == null)
+                {
+                    failCount++;
+
+                    if (failCount % 100 == 0)
+                    {
+                        Debug.WriteLine("⚠ フレーム取得失敗継続");
+
+                        ErrorDialogHelper.Show(
+                            $"⚠ フレーム取得失敗\n{failCount}回連続\n" +
+                            $"領域 W:{_region.Width} H:{_region.Height}");
+                    }
+
+                    Thread.Sleep(1);
+                    continue;
+                }
+
+                failCount = 0;
+
+                try
+                {
+                    var bmp = BitmapSource.Create(
+                        frame.Width,
+                        frame.Height,
+                        96,
+                        96,
+                        PixelFormats.Bgra32,
+                        null,
+                        frame.Buffer,
+                        frame.Stride);
+
+                    bmp.Freeze();
+
+                    _engine.EnqueueFrame(bmp);
+                }
+                catch (Exception ex)
+                {
+                    ErrorDialogHelper.Show("❌ Enqueue失敗\n" + ex.Message);
+                    Thread.Sleep(1);
+                    continue;
+                }
             }
-        }        // =========================
+        }
+
+        // =========================
         // 停止
         // =========================
         public async Task StopAsync()
@@ -81,31 +162,34 @@ namespace FindAncestor.WinRoc
 
             _state.IsStopping = true;
 
-            _thread?.Join();
+            try
+            {
+                _thread?.Join();
+            }
+            catch (Exception ex)
+            {
+                ErrorDialogHelper.Show("❌ Thread.Join失敗\n" + ex.Message);
+            }
 
             _state.IsRecording = false;
 
-            _duplicator?.Dispose();
-
-            await _engine.StopAsync();
-        }
-
-        private byte[] CropBuffer(DxgiFrame frame, WinRocRegion r, out int stride)
-        {
-            int bytesPerPixel = 4;
-            stride = r.Width * bytesPerPixel;
-
-            byte[] buffer = new byte[stride * r.Height];
-
-            for (int y = 0; y < r.Height; y++)
+            try
             {
-                int srcIndex = ((r.Y + y) * frame.Stride) + (r.X * bytesPerPixel);
-                int dstIndex = y * stride;
-
-                Buffer.BlockCopy(frame.Buffer, srcIndex, buffer, dstIndex, stride);
+                _duplicator?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                ErrorDialogHelper.Show("❌ Duplicator Dispose失敗\n" + ex.Message);
             }
 
-            return buffer;
+            try
+            {
+                await _engine.StopAsync();
+            }
+            catch (Exception ex)
+            {
+                ErrorDialogHelper.Show("❌ Engine Stop失敗\n" + ex.Message);
+            }
         }
     }
 }
