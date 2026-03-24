@@ -1,9 +1,6 @@
 ﻿using FindAncestor.Roc;
 using FindAncestor.ErrorDialog;
-using System;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 

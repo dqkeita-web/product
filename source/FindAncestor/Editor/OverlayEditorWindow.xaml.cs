@@ -1,58 +1,99 @@
-﻿using FindAncestor.Editor.FindAncestor.Editor;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-
-namespace FindAncestor.Editor
+﻿namespace FindAncestor.Editor
 {
+    using System;
+    using System.Windows;
+    using System.Windows.Controls;
+    using FindAncestor.ErrorDialog;
+
     public partial class OverlayEditorWindow : Window
     {
         private OverlayEditorViewModel _vm;
 
         public OverlayEditorWindow(OverlayEditorViewModel vm)
         {
-            InitializeComponent();
-            DataContext = vm;
-            _vm = vm;
-        }
-
-        private void AddGroup_Click(object sender, RoutedEventArgs e)
-        {
-            _vm.AddGroup();
+            try
+            {
+                InitializeComponent();
+                DataContext = vm;
+                _vm = vm;
+            }
+            catch (Exception ex)
+            {
+                ErrorDialogService.Show(ex);
+            }
         }
 
         private void AddItem_Click(object sender, RoutedEventArgs e)
         {
-            if ((sender as Button)?.DataContext is OverlayGroup g)
-                _vm.AddItem(g);
+            try
+            {
+                if ((sender as Button)?.DataContext is OverlayGroup g)
+                    _vm.AddItem(g);
+            }
+            catch (Exception ex)
+            {
+                ErrorDialogService.Show(ex);
+            }
         }
 
         private void RemoveItem_Click(object sender, RoutedEventArgs e)
         {
-            if ((sender as Button)?.DataContext is OverlayItem item)
+            try
             {
-                foreach (var g in _vm.Groups)
+                if ((sender as Button)?.DataContext is OverlayItem item)
                 {
-                    if (g.Items.Contains(item))
+                    foreach (var g in _vm.Groups)
                     {
-                        _vm.RemoveItem(g, item);
-                        break;
+                        if (g.Items.Contains(item))
+                        {
+                            _vm.RemoveItem(g, item);
+                            break;
+                        }
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                ErrorDialogService.Show(ex);
+            }
         }
 
-        private void Color_Click(object sender, RoutedEventArgs e)
+        private void Item_Focus(object sender, RoutedEventArgs e)
         {
-            if ((sender as Button)?.Background is Brush color)
+            try
             {
-                foreach (var g in _vm.Groups)
+                if ((sender as FrameworkElement)?.DataContext is OverlayItem item)
+                    _vm.SelectedItem = item;
+            }
+            catch (Exception ex)
+            {
+                ErrorDialogService.Show(ex);
+            }
+        }
+
+        // 🎨 カラーピッカー
+        private void ColorPicker_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if ((sender as Button)?.Tag is not OverlayItem item)
+                    return;
+
+                var picker = new ColorPickerWindow();
+
+                var result = picker.ShowDialog(); // ← 落ちる箇所
+
+                if (result == true)
                 {
-                    foreach (var item in g.Items)
+                    if (picker.DataContext is ColorPickerViewModel vm)
                     {
-                        item.Foreground = color;
+                        item.Foreground = vm.SelectedBrush;
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                ErrorDialogService.Show(ex);
             }
         }
     }

@@ -1,17 +1,19 @@
-﻿using FindAncestor.Editor;
-using System.Collections.ObjectModel;
-
+﻿
 namespace FindAncestor.Editor
 {
-    public class OverlayGroup
+    using System.Collections.ObjectModel;
+
+    public class OverlayGroup : BindableBase
     {
-        public string Name { get; set; } = "Group";
+        private string _name = "Group";
+        public string Name { get => _name; set => Set(ref _name, value); }
 
-        public bool IsVisible { get; set; } = true;
+        private bool _isVisible = true;
+        public bool IsVisible { get => _isVisible; set => Set(ref _isVisible, value); }
 
-        public double Opacity { get; set; } = 1;
+        private double _opacity = 1;
+        public double Opacity { get => _opacity; set => Set(ref _opacity, value); }
 
-        public ObservableCollection<OverlayItem> Items { get; set; }
-            = new ObservableCollection<OverlayItem>();
+        public ObservableCollection<OverlayItem> Items { get; set; } = new();
     }
 }

@@ -15,7 +15,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using FindAncestor.Editor;
-using FindAncestor.Editor.FindAncestor.Editor;
 using FindAncestor.ErrorDialog;
 using WinRocRecorder = FindAncestor.WinRoc.WinRocRecorder;
 

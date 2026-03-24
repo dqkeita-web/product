@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using FindAncestor.ErrorDialog;
+using System.Configuration;
 using System.Data;
 using System.Diagnostics;
 using System.Windows;
@@ -10,6 +11,21 @@ namespace FindAncestor
     /// </summary>
     public partial class App : Application
     {
+
+        public App()
+        {
+            DispatcherUnhandledException += (s, e) =>
+            {
+                ErrorDialogService.Show(e.Exception);
+                e.Handled = true;
+            };
+
+            AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+            {
+                if (e.ExceptionObject is Exception ex)
+                    ErrorDialogService.Show(ex);
+            };
+        }
         protected override void OnExit(ExitEventArgs e)
         {
             base.OnExit(e);

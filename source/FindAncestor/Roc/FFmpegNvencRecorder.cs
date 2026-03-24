@@ -1,6 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
 using FindAncestor.ErrorDialog;
 
 namespace FindAncestor.Roc

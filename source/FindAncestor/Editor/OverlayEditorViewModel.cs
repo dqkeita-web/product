@@ -1,55 +1,49 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using System.Collections.ObjectModel;
+﻿using System.Windows.Media;
 
 namespace FindAncestor.Editor
 {
+    using System.Collections.ObjectModel;
 
-    namespace FindAncestor.Editor
+    public class OverlayEditorViewModel : BindableBase
     {
-        public class OverlayEditorViewModel
+        public ObservableCollection<OverlayGroup> Groups { get; set; } = new();
+
+        private OverlayItem? _selectedItem;
+        public OverlayItem? SelectedItem
         {
-            public ObservableCollection<OverlayGroup> Groups { get; }
-                = new ObservableCollection<OverlayGroup>();
+            get => _selectedItem;
+            set => Set(ref _selectedItem, value);
+        }
 
-            public OverlayEditorViewModel()
+        // 🔥 コンストラクタ追加
+        public OverlayEditorViewModel()
+        {
+            var g = new OverlayGroup { Name = "サンプル" };
+
+            g.Items.Add(new OverlayItem { Text = "テスト1" });
+            g.Items.Add(new OverlayItem { Text = "テスト2" });
+
+            Groups.Add(g);
+        }
+
+        public void AddItem(OverlayGroup g)
+        {
+            var item = new OverlayItem
             {
-                var g = new OverlayGroup { Name = "テキスト1" };
+                Text = "New Text",
+                Foreground = Brushes.Black // 🔥 明示
+            };
 
-                // 初期10行
-                for (int i = 0; i < 10; i++)
-                {
-                    g.Items.Add(new OverlayItem
-                    {
-                        Text = $"テキスト{i + 1}",
-                        Y = 100 + i * 40
-                    });
-                }
+            g.Items.Add(item);
+            SelectedItem = item;
+        }
 
-                Groups.Add(g);
-            }
+        public void RemoveItem(OverlayGroup g, OverlayItem item)
+        {
+            g.Items.Remove(item);
 
-            public void AddGroup()
-            {
-                Groups.Add(new OverlayGroup { Name = $"Group{Groups.Count + 1}" });
-            }
-
-            public void RemoveItem(OverlayGroup group, OverlayItem item)
-            {
-                group.Items.Remove(item);
-            }
-
-            public void AddItem(OverlayGroup group)
-            {
-                if (group.Items.Count >= 10) return;
-
-                group.Items.Add(new OverlayItem
-                {
-                    Text = "新規テキスト",
-                    Y = 100
-                });
-            }
-
+            if (SelectedItem == item)
+                SelectedItem = null;
         }
     }
 }
