@@ -1,82 +1,70 @@
-﻿<Window
-    x:Class="FindAncestor.Views.MovieEditorView"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
-    xmlns:views="clr-namespace:FindAncestor.Views"
-    x:Name="RootWindow"
-    Title="映像スクロールメーカー"
-    Background="Black"
-    WindowStyle="None">
-    <Grid
-        x:Name="RootGrid"
-        MouseMove="RootGrid_MouseMove"
-        MouseRightButtonDown="RootGrid_MouseRightButtonDown"
-        MouseRightButtonUp="RootGrid_MouseRightButtonUp">
-        <Grid
-            x:Name="VideoHost"
-            Panel.ZIndex="0"
-            IsHitTestVisible="False">
-            <!--  ★移動（ここに持ってくる）  -->
-            <Grid
-                x:Name="TrimOverlay"
-                Panel.ZIndex="10000"
-                Background="#CC000000"
-                Visibility="{Binding IsTrimmingMode, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <Canvas
-                    x:Name="TrimTimeline"
-                    Height="80"
-                    VerticalAlignment="Bottom"
-                    Background="#66000000">
+﻿<Window x:Class="FindAncestor.Views.MovieEditorView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
+        xmlns:views="clr-namespace:FindAncestor.Views"
+        x:Name="RootWindow"
+        Title="映像スクロールメーカー"
+        Background="Black"
+        WindowStyle="None">
 
-                    <!--  ベースバー  -->
-                    <Rectangle
-                        Canvas.Top="40"
-                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Canvas}}"
-                        Height="6"
-                        Fill="Gray" />
+    <Grid x:Name="RootGrid"
+          MouseMove="RootGrid_MouseMove"
+          MouseRightButtonDown="RootGrid_MouseRightButtonDown"
+          MouseRightButtonUp="RootGrid_MouseRightButtonUp">
 
-                    <!--  選択範囲  -->
-                    <Rectangle
-                        Canvas.Left="{Binding TrimStartPosition}"
-                        Canvas.Top="40"
-                        Width="{Binding TrimWidth}"
-                        Height="6"
-                        Fill="Orange" />
+        <!-- ========== レイヤー0: 映像ホスト ========== -->
+        <Grid x:Name="VideoHost" Panel.ZIndex="0" IsHitTestVisible="False">
 
-                    <!--  左ハンドル  -->
-                    <Rectangle
-                        Canvas.Left="{Binding TrimStartPosition}"
-                        Canvas.Top="33"
-                        Width="10"
-                        Tag="Start"
-                        Height="20"
-                        Cursor="SizeWE"
-                        Fill="White"
-                        MouseDown="TrimHandle_MouseDown" />
+            <!-- トリムオーバーレイ -->
+            <Grid x:Name="TrimOverlay"
+                  Panel.ZIndex="10000"
+                  Background="#CC000000"
+                  Visibility="{Binding IsTrimmingMode, Converter={StaticResource BooleanToVisibilityConverter}}">
 
-                    <!--  右ハンドル  -->
-                    <Rectangle
-                        Tag="End"
-                        Canvas.Left="{Binding TrimEndPosition}"
-                        Canvas.Top="33"
-                        Width="10"
-                        Height="20"
-                        Cursor="SizeWE"
-                        Fill="White"
-                        MouseDown="TrimHandle_MouseDown" />
+                <Canvas x:Name="TrimTimeline"
+                        Height="80"
+                        VerticalAlignment="Bottom"
+                        Background="#66000000">
+
+                    <Rectangle Canvas.Top="40"
+                               Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Canvas}}"
+                               Height="6"
+                               Fill="Gray" />
+
+                    <Rectangle Canvas.Left="{Binding TrimStartPosition}"
+                               Canvas.Top="40"
+                               Width="{Binding TrimWidth}"
+                               Height="6"
+                               Fill="Orange" />
+
+                    <Rectangle Canvas.Left="{Binding TrimStartPosition}"
+                               Canvas.Top="33"
+                               Width="10" Height="20"
+                               Tag="Start"
+                               Cursor="SizeWE"
+                               Fill="White"
+                               MouseDown="TrimHandle_MouseDown" />
+
+                    <Rectangle Tag="End"
+                               Canvas.Left="{Binding TrimEndPosition}"
+                               Canvas.Top="33"
+                               Width="10" Height="20"
+                               Cursor="SizeWE"
+                               Fill="White"
+                               MouseDown="TrimHandle_MouseDown" />
                 </Canvas>
-                <!--  トリミング用動画  -->
-                <MediaElement
-                    x:Name="TrimPlayer"
-                    LoadedBehavior="Manual"
-                    Stretch="Uniform"
-                    UnloadedBehavior="Stop"
-                    Visibility="{Binding IsTrimmingMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <MediaElement x:Name="TrimPlayer"
+                              LoadedBehavior="Manual"
+                              Stretch="Uniform"
+                              UnloadedBehavior="Stop"
+                              Visibility="{Binding IsTrimmingMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
             </Grid>
         </Grid>
+
+        <!-- ========== レイヤー1: スクロールプレビュー（イベント付き） ========== -->
         <views:ScrollingPreviewView DataContext="{Binding EmbeddedPreviewViewModel}">
-            <!--  🔥 Overlay表示  -->
             <b:Interaction.Triggers>
                 <b:EventTrigger EventName="MouseMove">
                     <b:InvokeCommandAction Command="{Binding ShowUICommand}" />
@@ -86,37 +74,37 @@
                 </b:EventTrigger>
             </b:Interaction.Triggers>
         </views:ScrollingPreviewView>
-        <Canvas
-            x:Name="OverlayCanvas"
-            Panel.ZIndex="5000"
-            IsHitTestVisible="False" />
 
-        <Border Background="#AA000000" Visibility="{Binding IsEmbeddedMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <!-- ========== レイヤー2: 埋め込みプレビュー ========== -->
+        <Border Background="#AA000000"
+                Visibility="{Binding IsEmbeddedMode, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Grid>
-                <views:ScrollingPreviewView
-                    AllowDrop="True"
-                    DataContext="{Binding EmbeddedPreviewViewModel}"
-                    Drop="OnDrop" />
-                <Button
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    Command="{Binding CloseEmbeddedCommand}"
-                    Content=""
-                    Opacity="{Binding UiOpacity}"
-                    Style="{StaticResource AnimatedIconButton}"
-                    ToolTip="閉じる" />
+                <views:ScrollingPreviewView AllowDrop="True"
+                                           DataContext="{Binding EmbeddedPreviewViewModel}"
+                                           Drop="OnDrop" />
+                <Button HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Command="{Binding CloseEmbeddedCommand}"
+                        Content="&#xE711;"
+                        Opacity="{Binding UiOpacity}"
+                        Style="{StaticResource AnimatedIconButton}"
+                        ToolTip="閉じる" />
             </Grid>
         </Border>
-        <StackPanel
-            Margin="20"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Center"
-            Visibility="{Binding IsRecordingUiMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+
+        <!-- ========== レイヤー3: オーバーレイCanvas ========== -->
+        <Canvas x:Name="OverlayCanvas" Panel.ZIndex="5000" IsHitTestVisible="False" />
+
+        <!-- ========== レイヤー4: 右サイドコントロールパネル ========== -->
+        <StackPanel Margin="20"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Visibility="{Binding IsRecordingUiMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+
             <StackPanel Background="#66000000">
-                <Button
-                    Command="{Binding ToggleAddPanelCommand}"
-                    Content=""
-                    ToolTip="追加">
+
+                <!-- 追加パネルトグル -->
+                <Button Command="{Binding ToggleAddPanelCommand}" Content="&#xE710;" ToolTip="追加">
                     <Button.Style>
                         <Style BasedOn="{StaticResource AddToggleButton}" TargetType="Button">
                             <Style.Triggers>
@@ -128,19 +116,14 @@
                         </Style>
                     </Button.Style>
                 </Button>
-                <Canvas
-                    Width="0"
-                    Height="0"
-                    IsHitTestVisible="{Binding IsFolderSelectVisible}">
-                    <Border
-                        Canvas.Top="-120"
-                        Canvas.Right="60"
-                        Width="120"
-                        Padding="6"
-                        Background="#88000000"
-                        CornerRadius="16"
-                        IsHitTestVisible="{Binding IsFolderSelectVisible}"
-                        Visibility="{Binding CurrentPanelMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Add}">
+
+                <!-- 追加フォルダパネル -->
+                <Canvas Width="0" Height="0" IsHitTestVisible="{Binding IsFolderSelectVisible}">
+                    <Border Canvas.Top="-120" Canvas.Right="60"
+                            Width="120" Padding="6"
+                            Background="#88000000" CornerRadius="16"
+                            IsHitTestVisible="{Binding IsFolderSelectVisible}"
+                            Visibility="{Binding CurrentPanelMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Add}">
                         <ItemsControl ItemsSource="{Binding FolderPreviews}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -149,20 +132,14 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Button
-                                        Width="56"
-                                        Height="56"
-                                        Margin="4"
-                                        Command="{Binding DataContext.SelectFolderAndAddImagesCommand, ElementName=RootWindow}"
-                                        CommandParameter="{Binding Folder}"
-                                        Style="{StaticResource FolderFloatingButton}">
+                                    <Button Width="56" Height="56" Margin="4"
+                                            Command="{Binding DataContext.SelectFolderAndAddImagesCommand, ElementName=RootWindow}"
+                                            CommandParameter="{Binding Folder}"
+                                            Style="{StaticResource FolderFloatingButton}">
                                         <Grid>
                                             <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
                                             <Border Background="#66000000" />
-                                            <Border
-                                                Height="4"
-                                                VerticalAlignment="Top"
-                                                Background="{Binding Color}" />
+                                            <Border Height="4" VerticalAlignment="Top" Background="{Binding Color}" />
                                         </Grid>
                                     </Button>
                                 </DataTemplate>
@@ -170,26 +147,14 @@
                         </ItemsControl>
                     </Border>
                 </Canvas>
-                <Button
-                    Command="{Binding SelectAudioCommand}"
-                    Content=""
-                    Style="{StaticResource AnimatedIconButton}"
-                    ToolTip="曲選択" />
-                <Button
-                    Command="{Binding OpenEmbeddedScrollCommand}"
-                    Content=""
-                    Style="{StaticResource AnimatedIconButton}"
-                    ToolTip="停止" />
-                <Button
-                    Command="{Binding CloseApplication}"
-                    Content=""
-                    Style="{StaticResource AnimatedIconButton}"
-                    ToolTip="アプリ終了" />
+
+                <Button Command="{Binding SelectAudioCommand}" Content="&#xE8D6;" Style="{StaticResource AnimatedIconButton}" ToolTip="曲選択" />
+                <Button Command="{Binding OpenEmbeddedScrollCommand}" Content="&#xE769;" Style="{StaticResource AnimatedIconButton}" ToolTip="停止" />
+                <Button Command="{Binding CloseApplication}" Content="&#xE7E8;" Style="{StaticResource AnimatedIconButton}" ToolTip="アプリ終了" />
+
+                <!-- 削除パネルトグル -->
                 <Grid>
-                    <Button
-                        Command="{Binding ToggleDeletePanelCommand}"
-                        Content=""
-                        ToolTip="削除">
+                    <Button Command="{Binding ToggleDeletePanelCommand}" Content="&#xE74D;" ToolTip="削除">
                         <Button.Style>
                             <Style BasedOn="{StaticResource AddToggleButton}" TargetType="Button">
                                 <Style.Triggers>
@@ -201,15 +166,12 @@
                             </Style>
                         </Button.Style>
                     </Button>
+
                     <Canvas Width="0" Height="0">
-                        <Border
-                            Canvas.Top="-120"
-                            Canvas.Right="60"
-                            Width="120"
-                            Padding="6"
-                            Background="#88000000"
-                            CornerRadius="16"
-                            Visibility="{Binding CurrentPanelMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Delete}">
+                        <Border Canvas.Top="-120" Canvas.Right="60"
+                                Width="120" Padding="6"
+                                Background="#88000000" CornerRadius="16"
+                                Visibility="{Binding CurrentPanelMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Delete}">
                             <ItemsControl ItemsSource="{Binding FolderPreviews}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -218,27 +180,20 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Button
-                                            Width="56"
-                                            Height="56"
-                                            Margin="4"
-                                            Command="{Binding DataContext.DeleteFolderImagesCommand, ElementName=RootWindow}"
-                                            CommandParameter="{Binding Folder}"
-                                            Style="{StaticResource FolderFloatingButton}">
+                                        <Button Width="56" Height="56" Margin="4"
+                                                Command="{Binding DataContext.DeleteFolderImagesCommand, ElementName=RootWindow}"
+                                                CommandParameter="{Binding Folder}"
+                                                Style="{StaticResource FolderFloatingButton}">
                                             <Grid>
                                                 <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
                                                 <Border Background="#66000000" />
-                                                <Border
-                                                    Height="4"
-                                                    VerticalAlignment="Top"
-                                                    Background="{Binding Color}" />
-                                                <TextBlock
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    FontFamily="Segoe MDL2 Assets"
-                                                    FontSize="18"
-                                                    Foreground="White"
-                                                    Text="" />
+                                                <Border Height="4" VerticalAlignment="Top" Background="{Binding Color}" />
+                                                <TextBlock HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           FontFamily="Segoe MDL2 Assets"
+                                                           FontSize="18"
+                                                           Foreground="White"
+                                                           Text="&#xE74D;" />
                                             </Grid>
                                         </Button>
                                     </DataTemplate>
@@ -247,11 +202,10 @@
                         </Border>
                     </Canvas>
                 </Grid>
+
+                <!-- 再生フォルダパネルトグル -->
                 <Grid Margin="0,8,0,0">
-                    <Button
-                        Command="{Binding TogglePlayPanelCommand}"
-                        Content=""
-                        ToolTip="再生">
+                    <Button Command="{Binding TogglePlayPanelCommand}" Content="&#xE768;" ToolTip="再生">
                         <Button.Style>
                             <Style BasedOn="{StaticResource AddToggleButton}" TargetType="Button">
                                 <Style.Triggers>
@@ -263,15 +217,12 @@
                             </Style>
                         </Button.Style>
                     </Button>
+
                     <Canvas Width="0" Height="0">
-                        <Border
-                            Canvas.Top="-120"
-                            Canvas.Right="60"
-                            Width="120"
-                            Padding="6"
-                            Background="#88000000"
-                            CornerRadius="16"
-                            Visibility="{Binding CurrentPanelMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Play}">
+                        <Border Canvas.Top="-120" Canvas.Right="60"
+                                Width="120" Padding="6"
+                                Background="#88000000" CornerRadius="16"
+                                Visibility="{Binding CurrentPanelMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Play}">
                             <ItemsControl ItemsSource="{Binding FolderPreviews}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -281,28 +232,20 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Grid>
-                                            <Button
-                                                Width="56"
-                                                Height="56"
-                                                Margin="4"
-                                                Command="{Binding DataContext.SelectPlayFolderCommand, ElementName=RootWindow}"
-                                                CommandParameter="{Binding Folder}"
-                                                Style="{StaticResource FolderFloatingButton}">
+                                            <Button Width="56" Height="56" Margin="4"
+                                                    Command="{Binding DataContext.SelectPlayFolderCommand, ElementName=RootWindow}"
+                                                    CommandParameter="{Binding Folder}"
+                                                    Style="{StaticResource FolderFloatingButton}">
                                                 <Grid>
                                                     <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
                                                     <Border Background="#66000000" />
-                                                    <Border
-                                                        Height="4"
-                                                        VerticalAlignment="Top"
-                                                        Background="{Binding Color}" />
+                                                    <Border Height="4" VerticalAlignment="Top" Background="{Binding Color}" />
                                                 </Grid>
                                             </Button>
-                                            <Border
-                                                BorderBrush="White"
-                                                BorderThickness="2"
-                                                CornerRadius="8"
-                                                IsHitTestVisible="False"
-                                                Opacity="0.9">
+                                            <Border BorderBrush="White" BorderThickness="2"
+                                                    CornerRadius="8"
+                                                    IsHitTestVisible="False"
+                                                    Opacity="0.9">
                                                 <Border.Visibility>
                                                     <MultiBinding Converter="{StaticResource SelectedFolderHighlightConverter}">
                                                         <Binding Path="DataContext.SelectedPlayFolder" RelativeSource="{RelativeSource AncestorType=Window}" />
@@ -318,244 +261,164 @@
                     </Canvas>
                 </Grid>
             </StackPanel>
-            <!--  右下スライダーUI（完成版）  -->
-            <Grid
-                Margin="20"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Bottom"
-                Panel.ZIndex="999"
-                Visibility="{Binding IsRecordingUiMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+
+            <!-- ========== 右下スライダーUI ========== -->
+            <Grid Margin="20"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Bottom"
+                  Panel.ZIndex="999"
+                  Visibility="{Binding IsRecordingUiMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+
                 <StackPanel HorizontalAlignment="Right">
-                    <!--  スライダー表示エリア  -->
                     <Canvas Width="0" Height="0">
-                        <!--  音量  -->
-                        <Border
-                            Canvas.Right="30"
-                            Canvas.Bottom="-50"
-                            Width="160"
-                            Height="20"
-                            Background="#88000000"
-                            CornerRadius="5"
-                            RenderTransformOrigin="0.5,0.5"
-                            Visibility="{Binding CurrentSliderMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Volume}">
-                            <Slider
-                                Maximum="60"
-                                Minimum="0"
-                                Orientation="Horizontal"
-                                Value="{Binding Volume, Mode=TwoWay}" />
+
+                        <Border Canvas.Right="30" Canvas.Bottom="-50"
+                                Width="160" Height="20"
+                                Background="#88000000" CornerRadius="5"
+                                RenderTransformOrigin="0.5,0.5"
+                                Visibility="{Binding CurrentSliderMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Volume}">
+                            <Slider Maximum="60" Minimum="0"
+                                    Orientation="Horizontal"
+                                    Value="{Binding Volume, Mode=TwoWay}" />
                         </Border>
-                        <!--  再生速度  -->
-                        <Border
-                            Canvas.Right="30"
-                            Canvas.Bottom="-105"
-                            Width="160"
-                            Height="20"
-                            Background="#88000000"
-                            CornerRadius="5"
-                            RenderTransformOrigin="0.5,0.5"
-                            Visibility="{Binding CurrentSliderMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Speed}">
-                            <Slider
-                                Maximum="150"
-                                Minimum="-150"
-                                Orientation="Horizontal"
-                                Value="{Binding ScrollSpeed, Mode=TwoWay}" />
+
+                        <Border Canvas.Right="30" Canvas.Bottom="-105"
+                                Width="160" Height="20"
+                                Background="#88000000" CornerRadius="5"
+                                RenderTransformOrigin="0.5,0.5"
+                                Visibility="{Binding CurrentSliderMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Speed}">
+                            <Slider Maximum="150" Minimum="-150"
+                                    Orientation="Horizontal"
+                                    Value="{Binding ScrollSpeed, Mode=TwoWay}" />
                         </Border>
-                        <!--  サイズ  -->
-                        <Border
-                            Canvas.Right="30"
-                            Canvas.Bottom="-155"
-                            Width="160"
-                            Height="20"
-                            Background="#88000000"
-                            CornerRadius="5"
-                            RenderTransformOrigin="0.5,0.5"
-                            Visibility="{Binding CurrentSliderMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Size}">
-                            <Slider
-                                Maximum="2000"
-                                Minimum="300"
-                                Orientation="Horizontal"
-                                PreviewMouseLeftButtonUp="OnSizeSliderReleased"
-                                Value="{Binding ImageWidth, Mode=TwoWay}" />
+
+                        <Border Canvas.Right="30" Canvas.Bottom="-155"
+                                Width="160" Height="20"
+                                Background="#88000000" CornerRadius="5"
+                                RenderTransformOrigin="0.5,0.5"
+                                Visibility="{Binding CurrentSliderMode, Converter={StaticResource PanelModeToVisibilityConverter}, ConverterParameter=Size}">
+                            <Slider Maximum="2000" Minimum="300"
+                                    Orientation="Horizontal"
+                                    PreviewMouseLeftButtonUp="OnSizeSliderReleased"
+                                    Value="{Binding ImageWidth, Mode=TwoWay}" />
                         </Border>
                     </Canvas>
-                    <!--  トグルボタン  -->
+
                     <StackPanel Margin="0,8,0,0">
-                        <Button
-                            Command="{Binding ToggleVolumeSliderCommand}"
-                            Content=""
-                            Style="{StaticResource AnimatedIconButton}"
-                            ToolTip="音量調整" />
-                        <Button
-                            Command="{Binding ToggleSpeedSliderCommand}"
-                            Content=""
-                            Style="{StaticResource AnimatedIconButton}"
-                            ToolTip="再生速度" />
-                        <Button
-                            Command="{Binding ToggleSizeSliderCommand}"
-                            Content=""
-                            Style="{StaticResource AnimatedIconButton}"
-                            ToolTip="画面サイズ" />
+                        <Button Command="{Binding ToggleVolumeSliderCommand}" Content="&#xE767;" Style="{StaticResource AnimatedIconButton}" ToolTip="音量調整" />
+                        <Button Command="{Binding ToggleSpeedSliderCommand}" Content="&#xEC4A;" Style="{StaticResource AnimatedIconButton}" ToolTip="再生速度" />
+                        <Button Command="{Binding ToggleSizeSliderCommand}" Content="&#xE740;" Style="{StaticResource AnimatedIconButton}" ToolTip="画面サイズ" />
                     </StackPanel>
                 </StackPanel>
             </Grid>
         </StackPanel>
-        <Border
-            Margin="20"
-            Padding="8"
-            VerticalAlignment="Bottom"
-            Background="#88000000"
-            CornerRadius="12">
+
+        <!-- ========== レイヤー5: 下部コントロールバー ========== -->
+        <Border Margin="20" Padding="8"
+                VerticalAlignment="Bottom"
+                Background="#88000000"
+                CornerRadius="12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
+
                 <StackPanel Orientation="Horizontal">
-                    <Button
-                        Command="{Binding PreviousAudioCommand}"
-                        Content=""
-                        Style="{StaticResource AnimatedIconButton}" />
+                    <Button Command="{Binding PreviousAudioCommand}" Content="&#xE76B;" Style="{StaticResource AnimatedIconButton}" />
+                    <Button Command="{Binding TogglePlayCommand}" Content="&#xE768;" Style="{StaticResource AnimatedIconButton}" />
+                    <Button Command="{Binding NextAudioCommand}" Content="&#xE76C;" Style="{StaticResource AnimatedIconButton}" />
 
-                    <Button
-                        Command="{Binding TogglePlayCommand}"
-                        Content=""
-                        Style="{StaticResource AnimatedIconButton}" />
-
-                    <Button
-                        Command="{Binding NextAudioCommand}"
-                        Content=""
-                        Style="{StaticResource AnimatedIconButton}" />
-
-                    <!--  🔴 録画ボタン  -->
-                    <Button
-                        Command="{Binding ToggleRecordingCommand}"
-                        Content=""
-                        ToolTip="録画">
-
+                    <!-- 録画ボタン -->
+                    <Button Command="{Binding ToggleRecordingCommand}" Content="&#xE7C8;" ToolTip="録画">
                         <Button.Style>
                             <Style BasedOn="{StaticResource AnimatedIconButton}" TargetType="Button">
                                 <Style.Triggers>
-
-                                    <!--  録画中  -->
                                     <DataTrigger Binding="{Binding IsRecording}" Value="True">
                                         <Setter Property="Background" Value="#FF4444" />
                                         <Setter Property="Foreground" Value="White" />
+                                        <Setter Property="Content" Value="&#xE71A;" />
                                         <Setter Property="ToolTip" Value="録画停止" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsRecording}" Value="True">
-                                        <Setter Property="Content" Value="" />
-                                        <!--  ■ 停止アイコン  -->
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Button.Style>
-
                     </Button>
 
-                    <!--  範囲選択  -->
-                    <!--  範囲選択ボタン  -->
-                    <Button
-                        Command="{Binding StartRegionSelectCommand}"
-                        Content="□"
-                        Style="{StaticResource AnimatedIconButton}"
-                        ToolTip="範囲選択" />
+                    <!-- 範囲選択 -->
+                    <Button Command="{Binding StartRegionSelectCommand}" Content="□" Style="{StaticResource AnimatedIconButton}" ToolTip="範囲選択" />
 
-                    <!--  録画開始ボタン  -->
-                    <Button
-                        Command="{Binding ToggleWinRocRecordingCommand}"
-                        Content=""
-                        ToolTip="録画開始（範囲）">
+                    <!-- WinRoc録画 -->
+                    <Button Command="{Binding ToggleWinRocRecordingCommand}" Content="&#xE7C8;" ToolTip="録画開始（範囲）">
                         <Button.Style>
                             <Style BasedOn="{StaticResource AnimatedIconButton}" TargetType="Button">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsWinRocRecording}" Value="True">
                                         <Setter Property="Background" Value="#FF4444" />
                                         <Setter Property="Foreground" Value="White" />
-                                        <Setter Property="Content" Value="" />
+                                        <Setter Property="Content" Value="&#xE71A;" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Button.Style>
                     </Button>
-                    <Button
-                        Command="{Binding StartTrimFlowCommand}"
-                        Content="✂"
-                        Style="{StaticResource AnimatedIconButton}"
-                        ToolTip="トリミング開始" />
-                    <Button
-                        Command="{Binding OpenEditorCommand}"
-                        Content=""
-                        Style="{StaticResource AnimatedIconButton}"
-                        ToolTip="オーバーレイ編集" />
-                    <Button
-                        Command="{Binding SpeakCommand}"
-                        Content=""
-                        Style="{StaticResource AnimatedIconButton}"
-                        ToolTip="音声再生" />
-                    <Button
-                        Command="{Binding OpenAiVoiceCommand}"
-                        Content=""
-                        Style="{StaticResource AnimatedIconButton}"
-                        ToolTip="AI音声生成" />
+
+                    <Button Command="{Binding StartTrimFlowCommand}" Content="✂" Style="{StaticResource AnimatedIconButton}" ToolTip="トリミング開始" />
+                    <Button Command="{Binding OpenEditorCommand}" Content="&#xE70F;" Style="{StaticResource AnimatedIconButton}" ToolTip="オーバーレイ編集" />
+                    <Button Command="{Binding SpeakCommand}" Content="&#xE720;" Style="{StaticResource AnimatedIconButton}" ToolTip="音声再生" />
+                    <Button Command="{Binding OpenAiVoiceCommand}" Content="&#xE8D4;" Style="{StaticResource AnimatedIconButton}" ToolTip="AI音声生成" />
                 </StackPanel>
             </Grid>
         </Border>
-        <Canvas
-            x:Name="SelectionOverlay"
-            Panel.ZIndex="11000"
-            Background="#66000000"
-            IsHitTestVisible="{Binding IsTrimmingMode}"
-            MouseLeftButtonDown="Overlay_MouseDown"
-            MouseLeftButtonUp="Overlay_MouseUp"
-            MouseMove="Overlay_MouseMove"
-            Visibility="{Binding IsTrimmingMode, Converter={StaticResource BooleanToVisibilityConverter}}">
 
-            <Rectangle
-                x:Name="SelectionRect"
-                Fill="#33FFFFFF"
-                Stroke="White"
-                StrokeThickness="2"
-                Visibility="Collapsed" />
+        <!-- ========== レイヤー6: 選択オーバーレイ（範囲選択 / トリム兼用） ========== -->
+        <Canvas x:Name="SelectionOverlay"
+                Panel.ZIndex="11000"
+                Background="#66000000"
+                IsHitTestVisible="{Binding IsTrimmingMode}"
+                MouseLeftButtonDown="Overlay_MouseDown"
+                MouseLeftButtonUp="Overlay_MouseUp"
+                MouseMove="Overlay_MouseMove"
+                Visibility="{Binding IsTrimmingMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+
+            <Rectangle x:Name="SelectionRect"
+                       Fill="#33FFFFFF"
+                       Stroke="White"
+                       StrokeThickness="2"
+                       Visibility="Collapsed" />
 
             <Path x:Name="OverlayPath" Fill="#AA000000" />
 
-            <!--  実行ボタン  -->
-            <Button
-                Canvas.Right="20"
-                Canvas.Bottom="20"
-                Width="80"
-                Height="30"
-                Command="{Binding ExecuteTrimCommand}"
-                Content="実行" />
+            <Button Canvas.Right="20" Canvas.Bottom="20"
+                    Width="80" Height="30"
+                    Command="{Binding ExecuteTrimCommand}"
+                    Content="実行" />
         </Canvas>
 
-        <Canvas
-            x:Name="RecordingBorderOverlay"
-            Panel.ZIndex="99999"
-            Background="Transparent"
-            IsHitTestVisible="False"
-            Visibility="Collapsed">
-
-            <Rectangle
-                x:Name="RecordingBorder"
-                Fill="Transparent"
-                Stroke="#FF4444"
-                StrokeThickness="3"
-                Visibility="Collapsed" />
+        <!-- ========== レイヤー7: 録画枠オーバーレイ ========== -->
+        <Canvas x:Name="RecordingBorderOverlay"
+                Panel.ZIndex="99999"
+                Background="Transparent"
+                IsHitTestVisible="False"
+                Visibility="Collapsed">
+            <Rectangle x:Name="RecordingBorder"
+                       Fill="Transparent"
+                       Stroke="#FF4444"
+                       StrokeThickness="3"
+                       Visibility="Collapsed" />
         </Canvas>
-        <TextBlock
-            x:Name="RecIndicator"
-            Margin="20"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Top"
-            Panel.ZIndex="10000"
-            FontSize="24"
-            FontWeight="Bold"
-            Foreground="Red"
-            Text="● REC"
-            Visibility="Collapsed" />
 
+        <!-- ========== レイヤー8: RECインジケーター ========== -->
+        <TextBlock x:Name="RecIndicator"
+                   Margin="20"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Top"
+                   Panel.ZIndex="10000"
+                   FontSize="24"
+                   FontWeight="Bold"
+                   Foreground="Red"
+                   Text="● REC"
+                   Visibility="Collapsed" />
     </Grid>
-
 </Window>
