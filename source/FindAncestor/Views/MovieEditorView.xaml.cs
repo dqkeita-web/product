@@ -11,6 +11,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using FindAncestor.Voice.OCR;
 
 namespace FindAncestor.Views
 {
@@ -32,7 +33,7 @@ namespace FindAncestor.Views
         private Rect _startRect;
         private readonly DispatcherTimer _uiTimer = new() { Interval = TimeSpan.FromSeconds(2) };
         // フィールド
-
+        private double TimelineWidth => TrimTimeline.ActualWidth;
 
 
         public void ShowRecordingBorder(Rect rect)
@@ -110,8 +111,10 @@ namespace FindAncestor.Views
 
                 // 🔥 ここで完全終了（超重要）
                 vm.IsRegionSelecting = false;
+                vm.TrimStart = TimeSpan.FromSeconds(rect.X / 10);
+                vm.TrimEnd = TimeSpan.FromSeconds((rect.X + rect.Width) / 10);
             }
-
+            _isSelecting = false;
             // 🔥 View側も完全終了
             ForceEndSelection();
         }
@@ -123,7 +126,7 @@ namespace FindAncestor.Views
 
             var vm = new MovieEditorViewModel();
             DataContext = vm;
-
+            vm.RequestLoadTrimVideo += LoadTrimVideo; // 🔥 これが超重要
             // 🔥 ここでイベント購読
             vm.RecordingCompleted += OnRecordingCompleted;
 
@@ -233,11 +236,6 @@ namespace FindAncestor.Views
             _uiTimer.Stop();
         }
 
-        private void OnSliderReleased(object sender, MouseButtonEventArgs e)
-        {
-            if (DataContext is MovieEditorViewModel vm)
-                vm.ApplyImageWidth();
-        }
         public void ForceEndSelection()
         {
             _isSelecting = false;
@@ -299,8 +297,6 @@ namespace FindAncestor.Views
                 if (DataContext is not MovieEditorViewModel vm) return;
                 if (vm.EditorVM == null) return;
 
-                OverlayCanvas.Children.Clear();
-
                 double currentTime = vm.CurrentTime;
 
                 OverlayCanvas.Children.Clear();
@@ -339,7 +335,7 @@ namespace FindAncestor.Views
             }
         }
 
-        private Point _dragStart;
+
 
         private void OverlayItem_MouseDown(object sender, MouseButtonEventArgs e)
         {
@@ -377,5 +373,93 @@ namespace FindAncestor.Views
 
             _dragItem = null;
         }
+
+        private bool _isDraggingTrim;
+        private bool _isLeftHandle;
+        private Point _dragStart;
+
+        private void TrimHandle_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            _isDraggingTrim = true;
+            _dragStart = e.GetPosition(this);
+
+            _isLeftHandle = (sender as FrameworkElement)?.Tag?.ToString() == "Start";
+
+            Mouse.Capture(sender as IInputElement);
+        }
+
+        private void Window_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!_isDraggingTrim) return;
+
+            var pos = e.GetPosition(this);
+            double dx = pos.X - _dragStart.X;
+
+            if (DataContext is MovieEditorViewModel vm)
+            {
+                // 🔥 ここで毎フレーム計算する（これが正解）
+                double timelineWidth = TrimTimeline.ActualWidth;
+
+                if (timelineWidth <= 0 || vm.VideoDurationSeconds <= 0)
+                    return;
+
+                double secondsPerPixel = vm.VideoDurationSeconds / timelineWidth;
+
+                if (_isLeftHandle)
+                {
+                    vm.TrimStartSeconds += dx * secondsPerPixel;
+
+                    if (vm.TrimStartSeconds < 0)
+                        vm.TrimStartSeconds = 0;
+
+                    if (vm.TrimStartSeconds > vm.TrimEndSeconds)
+                        vm.TrimStartSeconds = vm.TrimEndSeconds;
+                }
+                else
+                {
+                    vm.TrimEndSeconds += dx * secondsPerPixel;
+
+                    if (vm.TrimEndSeconds > vm.VideoDurationSeconds)
+                        vm.TrimEndSeconds = vm.VideoDurationSeconds;
+
+                    if (vm.TrimEndSeconds < vm.TrimStartSeconds)
+                        vm.TrimEndSeconds = vm.TrimStartSeconds;
+                }
+
+                // 🔥 UI位置更新（これ忘れると動かない）
+                vm.TrimStartPosition = vm.TrimStartSeconds / vm.VideoDurationSeconds * timelineWidth;
+                vm.TrimEndPosition = vm.TrimEndSeconds / vm.VideoDurationSeconds * timelineWidth;
+            }
+
+            _dragStart = pos;
+        }
+
+        private void Window_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            _isDraggingTrim = false;
+            Mouse.Capture(null);
+        }
+
+        public void LoadTrimVideo(string path)
+        {
+            if (!File.Exists(path)) return;
+
+            TrimPlayer.Source = new Uri(path);
+
+            TrimPlayer.MediaOpened += (s, e) =>
+            {
+                if (DataContext is MovieEditorViewModel vm)
+                {
+                    vm.VideoDurationSeconds = TrimPlayer.NaturalDuration.TimeSpan.TotalSeconds;
+
+                    vm.TrimStartSeconds = 0;
+                    vm.TrimEndSeconds = vm.VideoDurationSeconds;
+                }
+            };
+
+            TrimPlayer.Play();
+        }
+
+
     }
 }

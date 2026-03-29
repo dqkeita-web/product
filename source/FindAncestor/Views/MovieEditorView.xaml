@@ -13,8 +13,70 @@
         MouseMove="RootGrid_MouseMove"
         MouseRightButtonDown="RootGrid_MouseRightButtonDown"
         MouseRightButtonUp="RootGrid_MouseRightButtonUp">
+        <Grid
+            x:Name="VideoHost"
+            Panel.ZIndex="0"
+            IsHitTestVisible="False">
+            <!--  ★移動（ここに持ってくる）  -->
+            <Grid
+                x:Name="TrimOverlay"
+                Panel.ZIndex="10000"
+                Background="#CC000000"
+                Visibility="{Binding IsTrimmingMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Canvas
+                    x:Name="TrimTimeline"
+                    Height="80"
+                    VerticalAlignment="Bottom"
+                    Background="#66000000">
+
+                    <!--  ベースバー  -->
+                    <Rectangle
+                        Canvas.Top="40"
+                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Canvas}}"
+                        Height="6"
+                        Fill="Gray" />
+
+                    <!--  選択範囲  -->
+                    <Rectangle
+                        Canvas.Left="{Binding TrimStartPosition}"
+                        Canvas.Top="40"
+                        Width="{Binding TrimWidth}"
+                        Height="6"
+                        Fill="Orange" />
+
+                    <!--  左ハンドル  -->
+                    <Rectangle
+                        Canvas.Left="{Binding TrimStartPosition}"
+                        Canvas.Top="33"
+                        Width="10"
+                        Tag="Start"
+                        Height="20"
+                        Cursor="SizeWE"
+                        Fill="White"
+                        MouseDown="TrimHandle_MouseDown" />
+
+                    <!--  右ハンドル  -->
+                    <Rectangle
+                        Tag="End"
+                        Canvas.Left="{Binding TrimEndPosition}"
+                        Canvas.Top="33"
+                        Width="10"
+                        Height="20"
+                        Cursor="SizeWE"
+                        Fill="White"
+                        MouseDown="TrimHandle_MouseDown" />
+                </Canvas>
+                <!--  トリミング用動画  -->
+                <MediaElement
+                    x:Name="TrimPlayer"
+                    LoadedBehavior="Manual"
+                    Stretch="Uniform"
+                    UnloadedBehavior="Stop"
+                    Visibility="{Binding IsTrimmingMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </Grid>
+        </Grid>
         <views:ScrollingPreviewView DataContext="{Binding EmbeddedPreviewViewModel}">
-            <!-- 🔥 Overlay表示 -->
+            <!--  🔥 Overlay表示  -->
             <b:Interaction.Triggers>
                 <b:EventTrigger EventName="MouseMove">
                     <b:InvokeCommandAction Command="{Binding ShowUICommand}" />
@@ -24,9 +86,10 @@
                 </b:EventTrigger>
             </b:Interaction.Triggers>
         </views:ScrollingPreviewView>
-        <Canvas x:Name="OverlayCanvas"
-                IsHitTestVisible="False"
-                Panel.ZIndex="5000"/>
+        <Canvas
+            x:Name="OverlayCanvas"
+            Panel.ZIndex="5000"
+            IsHitTestVisible="False" />
 
         <Border Background="#AA000000" Visibility="{Binding IsEmbeddedMode, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Grid>
@@ -416,22 +479,37 @@
                         </Button.Style>
                     </Button>
                     <Button
+                        Command="{Binding StartTrimFlowCommand}"
+                        Content="✂"
+                        Style="{StaticResource AnimatedIconButton}"
+                        ToolTip="トリミング開始" />
+                    <Button
                         Command="{Binding OpenEditorCommand}"
                         Content=""
                         Style="{StaticResource AnimatedIconButton}"
                         ToolTip="オーバーレイ編集" />
+                    <Button
+                        Command="{Binding SpeakCommand}"
+                        Content=""
+                        Style="{StaticResource AnimatedIconButton}"
+                        ToolTip="音声再生" />
+                    <Button
+                        Command="{Binding OpenAiVoiceCommand}"
+                        Content=""
+                        Style="{StaticResource AnimatedIconButton}"
+                        ToolTip="AI音声生成" />
                 </StackPanel>
             </Grid>
         </Border>
         <Canvas
             x:Name="SelectionOverlay"
-            Panel.ZIndex="9999"
+            Panel.ZIndex="11000"
             Background="#66000000"
-            IsHitTestVisible="False"
+            IsHitTestVisible="{Binding IsTrimmingMode}"
             MouseLeftButtonDown="Overlay_MouseDown"
             MouseLeftButtonUp="Overlay_MouseUp"
             MouseMove="Overlay_MouseMove"
-            Visibility="Collapsed">
+            Visibility="{Binding IsTrimmingMode, Converter={StaticResource BooleanToVisibilityConverter}}">
 
             <Rectangle
                 x:Name="SelectionRect"
@@ -441,6 +519,15 @@
                 Visibility="Collapsed" />
 
             <Path x:Name="OverlayPath" Fill="#AA000000" />
+
+            <!--  実行ボタン  -->
+            <Button
+                Canvas.Right="20"
+                Canvas.Bottom="20"
+                Width="80"
+                Height="30"
+                Command="{Binding ExecuteTrimCommand}"
+                Content="実行" />
         </Canvas>
 
         <Canvas
@@ -468,6 +555,7 @@
             Foreground="Red"
             Text="● REC"
             Visibility="Collapsed" />
+
     </Grid>
 
 </Window>

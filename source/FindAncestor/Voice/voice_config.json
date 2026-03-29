@@ -1,0 +1,183 @@
+  {
+    "version": "1.0",
+    "defaultCharacter": "default",
+
+    "globalSettings": {
+      "randomSeed": 12345,
+      "randomnessPercent": 0.03,
+      "historyLimit": 10,
+      "emotionSmoothing": "easeInOut",
+      "maxPitchDeltaPerLine": 0.15,
+      "maxSpeedDeltaPerLine": 0.15,
+      "maxIntonationDeltaPerLine": 0.2
+    },
+
+    "ttsMapping": {
+      "engine": "VOICEVOX",
+      "defaultVoiceId": 1,
+      "pitchScaleBase": 1.0,
+      "speedScaleBase": 1.0,
+      "intonationScaleBase": 1.0,
+      "volumeScaleBase": 1.0
+    },
+
+    "characters": [
+      {
+        "name": "default",
+
+        "basePitch": 1.0,
+        "baseSpeed": 1.0,
+        "baseIntonation": 1.0,
+
+        "tone": "neutral",
+        "speakingStyle": "calm",
+
+        "emotionBias": {
+          "neutral": 1.0,
+          "happy": 1.1,
+          "sad": 0.9,
+          "angry": 1.2,
+          "surprised": 1.1
+        },
+
+        "pitchRange": {
+          "min": 0.85,
+          "max": 1.15
+        },
+        "speedRange": {
+          "min": 0.85,
+          "max": 1.15
+        },
+        "intonationRange": {
+          "min": 0.8,
+          "max": 1.2
+        },
+
+        "phonemeStyle": {
+          "vowelStretch": 0.05,
+          "consonantStrength": 1.0,
+          "endingStyle": "none",
+          "endingVariants": []
+        },
+
+        "ttsParameters": {
+          "voiceId": 1,
+          "volumeScale": 1.0
+        },
+
+        "rvc": {
+          "enabled": false,
+          "modelPath": "",
+          "pitchOffset": 0
+        }
+      },
+
+      {
+        "name": "tsundere",
+
+        "basePitch": 1.1,
+        "baseSpeed": 1.05,
+        "baseIntonation": 1.2,
+
+        "tone": "sharp",
+        "speakingStyle": "tsundere",
+
+        "emotionBias": {
+          "neutral": 1.0,
+          "happy": 1.2,
+          "sad": 0.85,
+          "angry": 1.3,
+          "surprised": 1.25
+        },
+
+        "pitchRange": {
+          "min": 0.95,
+          "max": 1.3
+        },
+        "speedRange": {
+          "min": 0.9,
+          "max": 1.2
+        },
+        "intonationRange": {
+          "min": 1.0,
+          "max": 1.4
+        },
+
+        "phonemeStyle": {
+          "vowelStretch": 0.02,
+          "consonantStrength": 1.2,
+          "endingStyle": "tsundere",
+          "endingVariants": [
+            "〜なんだから",
+            "〜べ、別に",
+            "〜じゃない"
+          ]
+        },
+
+        "ttsParameters": {
+          "voiceId": 2,
+          "volumeScale": 1.05
+        },
+
+        "rvc": {
+          "enabled": false,
+          "modelPath": "",
+          "pitchOffset": 0
+        }
+      },
+
+      {
+        "name": "cool",
+
+        "basePitch": 0.9,
+        "baseSpeed": 0.95,
+        "baseIntonation": 0.85,
+
+        "tone": "cool",
+        "speakingStyle": "calm",
+
+        "emotionBias": {
+          "neutral": 1.0,
+          "happy": 0.9,
+          "sad": 1.1,
+          "angry": 1.05,
+          "surprised": 0.95
+        },
+
+        "pitchRange": {
+          "min": 0.75,
+          "max": 1.05
+        },
+        "speedRange": {
+          "min": 0.85,
+          "max": 1.05
+        },
+        "intonationRange": {
+          "min": 0.7,
+          "max": 1.0
+        },
+
+        "phonemeStyle": {
+          "vowelStretch": 0.01,
+          "consonantStrength": 0.9,
+          "endingStyle": "cool",
+          "endingVariants": [
+            "…だ",
+            "問題ない",
+            "別に"
+          ]
+        },
+
+        "ttsParameters": {
+          "voiceId": 3,
+          "volumeScale": 0.95
+        },
+
+        "rvc": {
+          "enabled": false,
+          "modelPath": "",
+          "pitchOffset": -1
+        }
+      }
+    ]
+  }
